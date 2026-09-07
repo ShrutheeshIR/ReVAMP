@@ -500,27 +500,34 @@ def add_tip_trace(args, resample_frames=None):
 def animate_trace_growth(trace, frame_start, frame_end):
     """Keyframe the trace so it draws itself in step with the marker tip.
 
-    Getting this exact needs two things together, and the first version had
-    neither, so the drawn end ran ahead of the marker through the slow parts of
-    the clip and lagged through the fast ones:
+    The animation advances in equal steps of TIME. A TOPPRA-retimed trajectory
+    accelerates out of the start and decelerates into the goal, so time and arc
+    length along the path are NOT proportional, and the mapping mode chosen here
+    decides whether the trace tracks the marker or drifts against it.
 
-    * `bevel_factor_mapping_end` must be SEGMENTS, not SPLINE. SPLINE advances
-      the factor along the curve as a single unit, which is effectively arc
-      length; the animation advances in equal steps of TIME. A TOPPRA-retimed
-      trajectory accelerates out of the start and decelerates into the goal, so
-      arc length and time are not proportional and the two drift apart.
-    * The spline needs one control point per animation frame, which
-      add_tip_trace(resample_frames=...) arranges. Then "fraction of control
-      points drawn" is exactly "fraction of the clip elapsed", and a linear
-      0 -> 1 keyframe pair is exact rather than approximate.
+    Measured on this scene -- setting bevel_factor_end to 0.25 / 0.50 / 0.75 and
+    finding which path index the drawn end actually reached:
 
-    Verify rather than assume: render a mid-clip frame and check the end of the
-    trace sits at the marker tip rather than somewhere else along the path.
+        mapping      index fraction        arc-length fraction
+        SEGMENTS     0.326 0.545 0.730     0.250 0.500 0.750
+        SPLINE       0.326 0.545 0.730     0.250 0.500 0.750
+        RESOLUTION   0.250 0.500 0.750     0.194 0.443 0.812
+
+    SEGMENTS and SPLINE are the same thing and both map by ARC LENGTH; RESOLUTION
+    is the only one that maps by control-point INDEX. With the spline resampled
+    to one control point per animation frame (add_tip_trace(resample_frames=...)),
+    index fraction is exactly elapsed-time fraction, so RESOLUTION plus a linear
+    0 -> 1 keyframe pair puts the drawn end on the marker.
+
+    Do not check this by eye on a couple of frames. An earlier version was
+    "verified" that way and passed while still running up to 5% of the path ahead
+    of the marker mid-clip. Measure the drawn end against the robot tip's
+    position at several frames instead.
     """
     if trace is None:
         return
     curve = trace.data
-    curve.bevel_factor_mapping_end = 'SEGMENTS'
+    curve.bevel_factor_mapping_end = 'RESOLUTION'
     curve.bevel_factor_end = 0.0
     curve.keyframe_insert("bevel_factor_end", frame=frame_start)
     curve.bevel_factor_end = 1.0

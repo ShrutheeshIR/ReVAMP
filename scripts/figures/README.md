@@ -103,13 +103,27 @@ counts, `[camera] fill=(fx, fy)`, `[render] CYCLES on GPU via OPTIX`, and a
 zero exit status. A `fill` well under 1.0 means the *resolution aspect* wants
 changing, not the camera.
 
-**The growing trace must track the marker in time, not arc length.** Two things
-make that exact, and the first version had neither, so the drawn end ran ahead
-through the slow parts of the clip and lagged through the fast ones:
-`bevel_factor_mapping_end` is `SEGMENTS` (not `SPLINE`, which is effectively arc
-length while the animation advances in equal steps of time), and the spline gets
-one control point per animation frame. Check it by rendering a mid-clip frame and
-confirming the end of the trace is at the marker tip.
+**The growing trace must track the marker in time, not arc length.** The
+animation advances in equal steps of time; a TOPPRA-retimed trajectory varies its
+speed, so arc length and time are not proportional. Measured on this scene,
+`bevel_factor_mapping_end` behaves as:
+
+| mapping | maps by |
+|---|---|
+| `SEGMENTS` | arc length |
+| `SPLINE` | arc length (identical to SEGMENTS) |
+| `RESOLUTION` | control-point index |
+
+So `RESOLUTION` is the only correct choice, together with a spline resampled to
+one control point per animation frame. **Do not check this by eye on a couple of
+frames** -- an earlier version was "verified" that way and passed while still
+running up to 5% of the path ahead of the marker mid-clip, which is plainly
+visible in motion. Measure instead: at several frames, find the path index of the
+robot's tip and the path index the drawn trace reaches, and compare. With
+`RESOLUTION` the two agree to a few tenths of a percent.
+
+Note the frame cache keys on the render *request*, not on this source code, so
+pass `--force` after changing anything in `blender_common.py`.
 
 For video, watch the frame count climb rather than the log: Cycles is bursty
 between frames, so one idle moment means nothing, but a flat count together with
