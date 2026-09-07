@@ -396,7 +396,38 @@ def _delete_objects(parts, doomed):
 
 # ── marker tip trace ─────────────────────────────────────────────────────────
 
-def add_tip_trace(args):
+def _resample_by_time(times, xyz, n):
+    """Resample an (t, xyz) polyline onto `n` evenly spaced times.
+
+    The trace has to advance in step with the animation, and the animation
+    advances in equal time steps per frame. Giving the spline exactly one control
+    point per frame, sampled at that frame's time, makes "fraction of control
+    points drawn" identical to "fraction of the clip elapsed" -- which is what
+    makes the growth keyframes exact rather than approximate. See
+    animate_trace_growth.
+    """
+    t0, t1 = times[0], times[-1]
+    out = []
+    for i in range(n):
+        t = t0 + (t1 - t0) * (i / max(1, n - 1))
+        # times is sorted and uniformly sampled by the exporter, but bisect
+        # rather than index arithmetic so this stays correct if that changes.
+        lo, hi = 0, len(times) - 1
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if times[mid] < t:
+                lo = mid + 1
+            else:
+                hi = mid
+        j = max(1, lo)
+        span = times[j] - times[j - 1]
+        w = 0.0 if span <= 0 else (t - times[j - 1]) / span
+        a, b = xyz[j - 1], xyz[j]
+        out.append([a[k] + (b[k] - a[k]) * w for k in range(3)])
+    return out
+
+
+def add_tip_trace(args, resample_frames=None):
     """Draw the marker tip's path as a Blender curve with a round bevel.
 
     A curve rather than geometry published from Drake: `meshcat.SetLine` does not
@@ -423,6 +454,11 @@ def add_tip_trace(args):
     if len(pts) < 2:
         print("[trace] fewer than 2 tip samples; skipping the trace")
         return None
+
+    resampled = False
+    if resample_frames and resample_frames >= 2 and data.get("t"):
+        pts = _resample_by_time(data["t"], pts, resample_frames)
+        resampled = True
 
     curve = bpy.data.curves.new("TipTrace", 'CURVE')
     curve.dimensions = '3D'
@@ -455,23 +491,36 @@ def add_tip_trace(args):
         curve.bevel_factor_end = max(0.0, min(1.0, progress))
 
     zs = [p[2] for p in pts]
-    print(f"[trace] {len(pts)} points, radius {args.trace_radius * 1000:.1f} mm, "
-          f"lift {lift * 1000:.1f} mm, source z [{min(zs):.4f}, {max(zs):.4f}]")
+    print(f"[trace] {len(pts)} points{' (one per frame)' if resampled else ''}, "
+          f"radius {args.trace_radius * 1000:.1f} mm, lift {lift * 1000:.1f} mm, "
+          f"source z [{min(zs):.4f}, {max(zs):.4f}]")
     return obj
 
 
 def animate_trace_growth(trace, frame_start, frame_end):
-    """Keyframe the trace so it draws itself across the animation.
+    """Keyframe the trace so it draws itself in step with the marker tip.
 
-    tip_path.json is sampled uniformly in time from the retimed trajectory and
-    the spline is POLY, so bevel_factor_end tracks the marker to within one point
-    spacing. Close enough to look right; check it by eye at a few frames rather
-    than assuming.
+    Getting this exact needs two things together, and the first version had
+    neither, so the drawn end ran ahead of the marker through the slow parts of
+    the clip and lagged through the fast ones:
+
+    * `bevel_factor_mapping_end` must be SEGMENTS, not SPLINE. SPLINE advances
+      the factor along the curve as a single unit, which is effectively arc
+      length; the animation advances in equal steps of TIME. A TOPPRA-retimed
+      trajectory accelerates out of the start and decelerates into the goal, so
+      arc length and time are not proportional and the two drift apart.
+    * The spline needs one control point per animation frame, which
+      add_tip_trace(resample_frames=...) arranges. Then "fraction of control
+      points drawn" is exactly "fraction of the clip elapsed", and a linear
+      0 -> 1 keyframe pair is exact rather than approximate.
+
+    Verify rather than assume: render a mid-clip frame and check the end of the
+    trace sits at the marker tip rather than somewhere else along the path.
     """
     if trace is None:
         return
     curve = trace.data
-    curve.bevel_factor_mapping_end = 'SPLINE'
+    curve.bevel_factor_mapping_end = 'SEGMENTS'
     curve.bevel_factor_end = 0.0
     curve.keyframe_insert("bevel_factor_end", frame=frame_start)
     curve.bevel_factor_end = 1.0

@@ -62,6 +62,7 @@ deadlocked on this hardware in the sibling repo, so there is no `--jobs` flag.
 | `--z-fight-nudge` | 1e-4 m | 60 of the 124 planks share the plane z = 0.1025 exactly. Exactly coplanar faces render as black patches under Cycles' CPU/Embree backend. |
 | ghost poses | 4–5 | The FR3's upper links barely move while tracing, so six or more stack into an unreadable mass while only the wrist separates. |
 | stills background | transparent | `film_transparent` + the `Standard` view transform, so figures drop onto the paper's white page. Video uses the opaque `#1a1a2e`. |
+| `--hold-start` / `--hold-end` | 1.0 / 1.5 s | The clip is only ~5 s, so it needs a beat at each end to read. Applied with ffmpeg's `tpad` at encode time, so changing them costs no GPU time. |
 
 ## Files
 
@@ -101,6 +102,14 @@ counts, `[camera] fill=(fx, fy)`, `[render] CYCLES on GPU via OPTIX`, and a
 `MAZE_STILL_DONE` / `MAZE_VIDEO_DONE` sentinel that is required in addition to a
 zero exit status. A `fill` well under 1.0 means the *resolution aspect* wants
 changing, not the camera.
+
+**The growing trace must track the marker in time, not arc length.** Two things
+make that exact, and the first version had neither, so the drawn end ran ahead
+through the slow parts of the clip and lagged through the fast ones:
+`bevel_factor_mapping_end` is `SEGMENTS` (not `SPLINE`, which is effectively arc
+length while the animation advances in equal steps of time), and the spline gets
+one control point per animation frame. Check it by rendering a mid-clip frame and
+confirming the end of the trace is at the marker tip.
 
 For video, watch the frame count climb rather than the log: Cycles is bursty
 between frames, so one idle moment means nothing, but a flat count together with

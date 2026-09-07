@@ -67,6 +67,13 @@ def build_parser():
                     help="playback speed; 0.5 is half speed. Implemented by rendering "
                          "more frames, so it is limited by the recording rate")
     ap.add_argument("--crf", type=int, default=20, help="x264 quality (lower is better)")
+    ap.add_argument("--hold-start", type=float, default=1.0,
+                    help="seconds to hold the first frame before the motion starts "
+                         "(default: 1.0). Applied at encode time by duplicating the "
+                         "frame, so changing it does not re-render anything")
+    ap.add_argument("--hold-end", type=float, default=1.5,
+                    help="seconds to hold the last frame after the motion finishes "
+                         "(default: 1.5), so the completed trace can be read")
     ap.add_argument("--width", type=int, default=1920)
     ap.add_argument("--height", type=int, default=1080)
     ap.add_argument("--samples", type=int, default=64)
@@ -337,18 +344,31 @@ def verify(stdout, frames_dir, args):
     return frames
 
 
-def encode(frames_dir, out, fps, crf):
+def encode(frames_dir, out, fps, crf, hold_start=0.0, hold_end=0.0):
     """PNG sequence -> H.264. libx264, never NVENC: measured slower here and
-    needing far more bitrate for the same quality."""
+    needing far more bitrate for the same quality.
+
+    The holds are done here with tpad rather than by rendering duplicate frames,
+    so their length is free to change and costs no GPU time.
+    """
     if shutil.which("ffmpeg") is None:
         raise SystemExit("ffmpeg is not on PATH; cannot encode. The frames are in "
                          f"{frames_dir}.")
+
+    # Even dimensions and yuv420p, or the file will not play in most browsers.
+    filters = ["pad=ceil(iw/2)*2:ceil(ih/2)*2"]
+    if hold_start > 0 or hold_end > 0:
+        pad = "tpad="
+        if hold_start > 0:
+            pad += f"start_mode=clone:start_duration={hold_start:g}:"
+        if hold_end > 0:
+            pad += f"stop_mode=clone:stop_duration={hold_end:g}:"
+        filters.append(pad.rstrip(":"))
+
     cmd = ["ffmpeg", "-y", "-framerate", str(fps),
            "-i", os.path.join(frames_dir, "frame_%04d.png"),
            "-c:v", "libx264", "-crf", str(crf), "-preset", "medium",
-           # yuv420p and even dimensions, or the file will not play in most
-           # browsers and players.
-           "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p",
+           "-vf", ",".join(filters), "-pix_fmt", "yuv420p",
            "-an", out]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0 or not os.path.isfile(out):
@@ -402,8 +422,10 @@ def main():
         with open(os.path.join(frames_dir, "render_config.json"), "w") as f:
             json.dump(key, f, indent=2)
 
-    print(f"[video] {len(frames)} frames")
-    encode(frames_dir, out, args.fps, args.crf)
+    print(f"[video] {len(frames)} frames"
+          + (f", holding {args.hold_start:g}s at the start and {args.hold_end:g}s at "
+             "the end" if (args.hold_start or args.hold_end) else ""))
+    encode(frames_dir, out, args.fps, args.crf, args.hold_start, args.hold_end)
 
     if not args.keep_frames and args.preview_frames == 0:
         shutil.rmtree(frames_dir, ignore_errors=True)

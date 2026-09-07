@@ -93,7 +93,12 @@ def main():
 
     trace = None
     if args.trace_mode != "none":
-        trace = bc.add_tip_trace(args)
+        # One control point per frame, so the growth keyframes below advance the
+        # drawn end in step with the marker rather than along arc length. See
+        # blender_common.animate_trace_growth.
+        n_frames = frame_end - frame_start + 1
+        trace = bc.add_tip_trace(
+            args, resample_frames=n_frames if args.trace_mode == "growing" else None)
         if trace is not None and args.trace_mode == "growing":
             bc.animate_trace_growth(trace, frame_start, frame_end)
 
