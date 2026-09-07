@@ -132,8 +132,12 @@ exactly this.
 
 ## Requirements
 
-Blender 5.0.x with the `meshcat_html_importer` add-on installed at
-`~/.config/blender/5.0/extensions/user_default/`, ffmpeg, and a Python with
-pydrake, numpy, matplotlib and trimesh. Blender and ffmpeg are system packages,
-not pip ones. A CUDA/OptiX GPU is strongly preferred; Cycles on CPU produces the
-same image far more slowly, and the drivers will tell you which one ran.
+Blender 5.0.x, the `meshcat_html_importer` add-on (upstream
+<https://github.com/nepfaff/drake-blender-recorder>, tag `v0.1.3`, installed into
+`~/.config/blender/5.0/extensions/user_default/`), ffmpeg, and a Python with
+pydrake, numpy and matplotlib. Blender and ffmpeg are system packages, not pip
+ones. A CUDA/OptiX GPU is strongly preferred; Cycles on CPU produces the same
+image far more slowly, and the drivers will tell you which one ran.
+
+**Setting all of that up from a bare clone, and the trajectories the renders
+need, is covered in `FIGURES_HOWTO.md` at the repo root.**
