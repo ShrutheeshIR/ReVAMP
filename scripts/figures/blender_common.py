@@ -476,10 +476,52 @@ def animate_trace_growth(trace, frame_start, frame_end):
     curve.keyframe_insert("bevel_factor_end", frame=frame_start)
     curve.bevel_factor_end = 1.0
     curve.keyframe_insert("bevel_factor_end", frame=frame_end)
-    for fcurve in (curve.animation_data.action.fcurves if curve.animation_data else []):
+
+    # Linear, so the trace grows at the rate the marker actually moves. Bezier
+    # (Blender's default) eases in and out, which would make the drawn length
+    # lag the marker at both ends of the clip.
+    n = 0
+    for fcurve in _action_fcurves(curve.animation_data):
         for kp in fcurve.keyframe_points:
             kp.interpolation = 'LINEAR'
-    print(f"[trace] growing across frames {frame_start}-{frame_end}")
+            n += 1
+    print(f"[trace] growing across frames {frame_start}-{frame_end} "
+          f"({n} keyframes set to linear)")
+
+
+def _action_fcurves(animation_data):
+    """F-curves of an action, across Blender's two action APIs.
+
+    Blender 5.0 replaced `action.fcurves` with slotted actions, where the curves
+    live under layers -> strips -> channelbags and are reached through the slot
+    the animated ID is assigned to. `action.fcurves` raises AttributeError there.
+    Older builds have only the flat list. Yields nothing rather than raising if
+    neither shape is available, since interpolation is a refinement and not worth
+    failing a render over.
+    """
+    action = getattr(animation_data, "action", None)
+    if action is None:
+        return
+
+    legacy = getattr(action, "fcurves", None)
+    if legacy is not None:
+        yield from legacy
+        return
+
+    slot = getattr(animation_data, "action_slot", None)
+    for layer in getattr(action, "layers", ()):
+        for strip in getattr(layer, "strips", ()):
+            channelbag = None
+            try:
+                channelbag = strip.channelbag(slot) if slot is not None else None
+            except Exception:
+                channelbag = None
+            if channelbag is None:
+                # Some builds expose the bags directly when there is only one slot.
+                for bag in getattr(strip, "channelbags", ()):
+                    yield from getattr(bag, "fcurves", ())
+                continue
+            yield from getattr(channelbag, "fcurves", ())
 
 
 # ── ghosting (ported from blender_swept_volume.py) ───────────────────────────
