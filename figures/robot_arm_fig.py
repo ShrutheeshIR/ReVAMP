@@ -281,6 +281,21 @@ def arm_obstacle_collision(joint_points, obstacles, link_half_width=LINK_HALF_WI
 
 
 
+def gripper_obstacle_collision(wrist, heading, obstacles,
+                                half_width=CROSSBAR_HALF_WIDTH):
+    """Like arm_obstacle_collision(), but checks only the gripper's central
+    axis (wrist -> fingertip), not the arm's links -- for figures (e.g.
+    draw_eefs_only()) that only render the gripper, so a collision ring
+    never appears over link geometry that isn't actually drawn."""
+    wrist = np.asarray(wrist, dtype=float)
+    tip = gripper_tip(wrist, heading)
+    for center, radius in obstacles:
+        closest, distance = closest_point_on_segment(wrist, tip, center)
+        if distance <= radius + half_width:
+            return closest, radius
+    return None
+
+
 def draw_target(ax, pos, color="#d7263d", w=0.22, h=0.55, zorder=4, rotation=0):
     """Small rectangular 'object' marker."""
     x, y = pos
@@ -387,7 +402,7 @@ def draw_plane(ax, y, half_width, skew=0.25, depth=0.55, color="#b5b0a8",
 def draw_arm(ax, base, angles, lengths, color, draw_rail=True,
              draw_gripper_only=False, shaft_zorder=0.5, gripper_zorder=1.5,
              alpha_arm_body=1.0, in_collision=False, collision_point=None,
-             collision_color="#e63946", collision_ring_radius=0.4,
+             collision_color="#e63946", collision_ring_radius=0.21,
              recolor_on_collision=True):
     """Draw a full arm: base rail, rectangular links + pivot discs,
     rectangular gripper. The shaft is drawn *below* the constraint plane's
@@ -444,6 +459,20 @@ def draw_contact_shadow(ax, pos, color="#000000", rx=0.16, ry=0.055,
                           edgecolor="none", alpha=alpha, zorder=zorder))
 
 
+def draw_interpolation_line(ax, points, color="#555555", lw=1.6,
+                             dash=(6, 3), zorder=1.06, marker_radius=0.05):
+    """Dashed line through a sequence of contact points on the plane, plus
+    a small dot at each -- shows the four eef poses as samples along one
+    interpolated path across the manifold, rather than four unrelated
+    points."""
+    points = np.asarray(points, dtype=float)
+    ax.plot(points[:, 0], points[:, 1], color=color, lw=lw,
+            dashes=dash, zorder=zorder, solid_capstyle="round")
+    for p in points:
+        ax.add_patch(Circle(p, marker_radius, facecolor=color,
+                             edgecolor="none", zorder=zorder + 0.01))
+
+
 def link_point(pts, link_idx, t):
     """Point a fraction `t` in [0, 1] along link `link_idx` (0 = base
     link, 1 = forearm, ...) of a `forward_kinematics` joint-point list."""
@@ -453,7 +482,7 @@ def link_point(pts, link_idx, t):
 
 
 def make_example_obstacles(arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
-                            base=(0.0, 0.0)):
+                            base=(0.0, 0.0), plane_obstacle_y_offset=0.0):
     """Two example obstacles (styled like the red boxes in the reference
     figure), taking inspiration from its "obstacle sitting near the arm"
     look:
@@ -463,7 +492,10 @@ def make_example_obstacles(arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
       `t` well below 1 keeps it clear of the wrist/gripper, so it fouls
       the link but not the end-effector.
     - `plane_obstacle`: resting on top of the constraint plane, off to the
-      side of the whole fan so it doesn't touch any arm.
+      side of the whole fan so it doesn't touch any arm. Pass
+      `plane_obstacle_y_offset` (e.g. a couple units) to lift it well
+      clear of the plane instead, so it's visibly present but guaranteed
+      collision-free.
 
     Returns (link_obstacle_pos, plane_obstacle_pos, arm_idx) for use with
     draw_target() and, if wanted, arm_obstacle_collision() for a sanity
@@ -473,20 +505,29 @@ def make_example_obstacles(arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
     lengths = ARM_LENGTHS[arm_idx]
     pts, _ = forward_kinematics(base, angles, lengths)
     link_obstacle = tuple(link_point(pts, link_idx, t))
-    link_obstacle = (link_obstacle[0] + 0.3, link_obstacle[1] - 0.25)
-    plane_obstacle = (-0.45, TARGET_HEIGHT - 0.3)
+    link_obstacle = (link_obstacle[0] + 0.55, link_obstacle[1] + 0.025)
+    plane_obstacle = (-0.45, TARGET_HEIGHT - 0.3 + plane_obstacle_y_offset)
     return link_obstacle, plane_obstacle, arm_idx
 
 
 def draw_example_obstacles(ax, arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
-                            base=(0.0, 0.0), color="#EE0000", radius=0.18):
+                            base=(0.0, 0.0), colors=None, radius=0.18,
+                            include_plane_obstacle=True,
+                            plane_obstacle_y_offset=0.0):
     """Draws the two obstacles from make_example_obstacles() as spheres
-    (draw_sphere()) rather than boxes."""
+    (draw_sphere()) rather than boxes -- link and plane obstacles colored
+    differently (OBSTACLE_COLORS by default) so they read as distinct
+    objects across every panel, not just "the red one(s)". Set
+    include_plane_obstacle=False to draw (and return) only the link
+    obstacle."""
+    colors = colors or OBSTACLE_COLORS
     link_obstacle, plane_obstacle, _ = make_example_obstacles(
-        arm_idx=arm_idx, link_idx=link_idx, t=t, side_x=side_x, base=base)
-    draw_sphere(ax, link_obstacle, radius=radius, color=color, zorder=1.2)
-    draw_sphere(ax, plane_obstacle, radius=radius, color=color, zorder=1.2)
-    return link_obstacle, plane_obstacle
+        arm_idx=arm_idx, link_idx=link_idx, t=t, side_x=side_x, base=base,
+        plane_obstacle_y_offset=plane_obstacle_y_offset)
+    draw_sphere(ax, link_obstacle, radius=radius, color=colors[0], zorder=1.2)
+    if include_plane_obstacle:
+        draw_sphere(ax, plane_obstacle, radius=radius, color=colors[1], zorder=1.2)
+    return link_obstacle, (plane_obstacle if include_plane_obstacle else None)
 
 
 # ----------------------------------------------------------------------
@@ -496,6 +537,11 @@ def draw_example_obstacles(ax, arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
 # background.
 # ----------------------------------------------------------------------
 PALETTE = ["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3"]
+
+# (link_obstacle, plane_obstacle) colors -- distinct from each other and
+# from PALETTE, so which obstacle is which stays clear across every panel
+# (physical render, SE(3) plots, Q-space plot) instead of "two red balls".
+OBSTACLE_COLORS = ("#e63946", "#ffb703")
 
 LINK_LENGTHS = (1.0, 1.1)
 
@@ -548,132 +594,508 @@ ARM_POSES = [
 ]
 
 
-def draw_all():
-    fig, ax = plt.subplots(figsize=(5.5, 4.6))
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
+def _draw_shared_base_and_plane(ax):
+    """Base rail + pivot + constraint-manifold plane, common to every
+    panel below."""
     base = (0.0, 0.0)
-
-    # single shared base rail, drawn once in a neutral color underneath
-    # all the overlaid poses
     draw_base_rail(ax, base, "#4d4d4d", zorder=0.5)
     draw_joint(ax, base, "#4d4d4d", radius=BASE_HALF_WIDTH, zorder=0.6)
-
     # Plane sits centered on the wrist height: the shaft (zorder < plane)
     # dips into the plane's depth band and gets occluded there, as if
     # reaching up through the surface from underneath, while the gripper
     # (zorder > plane) draws on top of it -- so it reads as resting on the
     # surface, fingers rising off the top, rather than skewering through.
     draw_plane(ax, TARGET_HEIGHT, half_width=1.8)
+    return base
 
-    for color, angles, lengths in zip(PALETTE, ARM_POSES, ARM_LENGTHS):
-        pts, heading = draw_arm(ax, base, angles, lengths, color,
-                                 draw_rail=False, shaft_zorder=0.5,
-                                 gripper_zorder=1.5)
-        draw_contact_shadow(ax, gripper_tip(pts[-1], heading))
 
-    draw_example_obstacles(ax)
+def _finish_panel(ax):
     ax.set_xlim(-2.5, 2.5)
     ax.set_ylim(-0.5, 2.6)
     ax.set_aspect("equal")
     ax.axis("off")
 
+
+def draw_all_content(ax, include_plane_obstacle=True,
+                      plane_obstacle_y_offset=0.0):
+    """All four poses, each recolored red with a ring at its exact
+    collision point if it fouls an obstacle. Set include_plane_obstacle=
+    False to drop the obstacle resting on the plane (and skip checking
+    against it), leaving just the link obstacle. Or, to keep it visible
+    but guaranteed collision-free, leave include_plane_obstacle=True and
+    pass a large plane_obstacle_y_offset to lift it well clear of the
+    plane and every arm."""
+    base = _draw_shared_base_and_plane(ax)
+
+    link_obs, plane_obs, _ = make_example_obstacles(
+        plane_obstacle_y_offset=plane_obstacle_y_offset)
+    obstacles = [(link_obs, 0.18)]
+    if include_plane_obstacle:
+        obstacles.append((plane_obs, 0.18))
+
+    eef_points = []
+    for color, angles, lengths in zip(PALETTE, ARM_POSES, ARM_LENGTHS):
+        pts, heading = forward_kinematics(base, angles, lengths)
+        hit = arm_obstacle_collision(pts, obstacles)
+        pts, heading = draw_arm(ax, base, angles, lengths, color,
+                                 draw_rail=False, shaft_zorder=0.5,
+                                 gripper_zorder=1.5,
+                                 in_collision=hit is not None,
+                                 collision_point=hit[0] if hit else None,
+                                 recolor_on_collision=False)
+        eef_point = gripper_tip(pts[-1], heading)
+        draw_contact_shadow(ax, eef_point)
+        eef_points.append(eef_point)
+
+    # Connect the four eef contact points on the plane to show they're
+    # samples along one interpolated path, not four unrelated poses.
+    draw_interpolation_line(ax, eef_points)
+
+    draw_example_obstacles(ax, include_plane_obstacle=include_plane_obstacle,
+                            plane_obstacle_y_offset=plane_obstacle_y_offset)
+    _finish_panel(ax)
+
+
+def draw_start_config_end_only_content(ax, plane_obstacle_y_offset=0.0):
+    """Arm 0 (faded, full body) and arm 3 (gripper only) -- start/end
+    configuration pair."""
+    base = _draw_shared_base_and_plane(ax)
+
+    eef_points = []
+    for arm_idx, (color, angles, lengths) in enumerate(zip(PALETTE, ARM_POSES, ARM_LENGTHS)):
+        # Every pose's eef point feeds the interpolation line, even the
+        # two not actually drawn in this view.
+        all_pts, all_heading = forward_kinematics(base, angles, lengths)
+        eef_points.append(gripper_tip(all_pts[-1], all_heading))
+
+        if arm_idx == 0:
+            draw_gripper_only = False
+            alpha_arm_body = 0.3
+        elif arm_idx == len(PALETTE) - 1:
+            draw_gripper_only = True
+        else:
+            continue
+
+        pts, heading = draw_arm(ax, base, angles, lengths, color,
+                                 draw_rail=False, shaft_zorder=0.5,
+                                 gripper_zorder=1.5, draw_gripper_only=draw_gripper_only,
+                                 alpha_arm_body=alpha_arm_body)
+        draw_contact_shadow(ax, gripper_tip(pts[-1], heading))
+
+    draw_interpolation_line(ax, eef_points)
+    draw_example_obstacles(ax, plane_obstacle_y_offset=plane_obstacle_y_offset)
+    _finish_panel(ax)
+
+
+def draw_eefs_only_content(ax, plane_obstacle_y_offset=0.0):
+    """Arm 0 (faded, full body) plus every other arm's gripper only, with
+    collision checked against the gripper geometry alone for the
+    gripper-only poses (their links aren't drawn, so a link collision
+    there would show a ring over nothing)."""
+    base = _draw_shared_base_and_plane(ax)
+
+    link_obs, plane_obs, _ = make_example_obstacles(
+        plane_obstacle_y_offset=plane_obstacle_y_offset)
+    obstacles = [(link_obs, 0.18), (plane_obs, 0.18)]
+
+    eef_points = []
+    for arm_idx, (color, angles, lengths) in enumerate(zip(PALETTE, ARM_POSES, ARM_LENGTHS)):
+        if arm_idx == 0:
+            draw_gripper_only = False
+            alpha_arm_body = 0.3
+        else:
+            draw_gripper_only = True
+
+        pts, heading = forward_kinematics(base, angles, lengths)
+        if draw_gripper_only:
+            hit = gripper_obstacle_collision(pts[-1], heading, obstacles)
+        else:
+            hit = arm_obstacle_collision(pts, obstacles)
+        pts, heading = draw_arm(ax, base, angles, lengths, color,
+                                 draw_rail=False, shaft_zorder=0.5,
+                                 gripper_zorder=1.5, draw_gripper_only=draw_gripper_only,
+                                 alpha_arm_body=alpha_arm_body,
+                                 in_collision=hit is not None,
+                                 collision_point=hit[0] if hit else None,
+                                 recolor_on_collision=False)
+        eef_point = gripper_tip(pts[-1], heading)
+        draw_contact_shadow(ax, eef_point)
+        eef_points.append(eef_point)
+
+    draw_interpolation_line(ax, eef_points)
+    draw_example_obstacles(ax, plane_obstacle_y_offset=plane_obstacle_y_offset)
+    _finish_panel(ax)
+
+
+def _save_fig(fig, name):
     fig.tight_layout()
-    fig.savefig("robot_arm_fig.png", dpi=300, facecolor="white")
-    fig.savefig("robot_arm_fig.svg", facecolor="white")
-    print("Saved robot_arm_fig.png / robot_arm_fig.svg")
+    fig.savefig(f"{name}.png", dpi=300, facecolor="white")
+    fig.savefig(f"{name}.svg", facecolor="white")
+    print(f"Saved {name}.png / {name}.svg")
+
+
+def draw_all():
+    fig, ax = plt.subplots(figsize=(5.5, 4.6))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    draw_all_content(ax)
+    _save_fig(fig, "robot_arm_fig")
 
 
 def draw_start_config_end_only():
     fig, ax = plt.subplots(figsize=(5.5, 4.6))
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
-    base = (0.0, 0.0)
-
-    # single shared base rail, drawn once in a neutral color underneath
-    # all the overlaid poses
-    draw_base_rail(ax, base, "#4d4d4d", zorder=0.5)
-    draw_joint(ax, base, "#4d4d4d", radius=BASE_HALF_WIDTH, zorder=0.6)
-
-    # Plane sits centered on the wrist height: the shaft (zorder < plane)
-    # dips into the plane's depth band and gets occluded there, as if
-    # reaching up through the surface from underneath, while the gripper
-    # (zorder > plane) draws on top of it -- so it reads as resting on the
-    # surface, fingers rising off the top, rather than skewering through.
-    draw_plane(ax, TARGET_HEIGHT, half_width=1.8)
-
-    for arm_idx, (color, angles, lengths) in enumerate(zip(PALETTE, ARM_POSES, ARM_LENGTHS)):
-        if arm_idx == 0:
-            draw_gripper_only = False
-            alpha_arm_body = 0.3
-
-        elif arm_idx == len(PALETTE) - 1:
-            draw_gripper_only = True
-        else:
-            continue        
-
-        pts, heading = draw_arm(ax, base, angles, lengths, color,
-                                 draw_rail=False, shaft_zorder=0.5,
-                                 gripper_zorder=1.5, draw_gripper_only = draw_gripper_only, alpha_arm_body = alpha_arm_body)
-        draw_contact_shadow(ax, gripper_tip(pts[-1], heading))
-
-    draw_example_obstacles(ax)
-    ax.set_xlim(-2.5, 2.5)
-    ax.set_ylim(-0.5, 2.6)
-    ax.set_aspect("equal")
-    ax.axis("off")
-
-    fig.tight_layout()
-    fig.savefig("robot_arm_fig.png", dpi=300, facecolor="white")
-    fig.savefig("robot_arm_fig.svg", facecolor="white")
-    print("Saved robot_arm_fig.png / robot_arm_fig.svg")
-
+    draw_start_config_end_only_content(ax)
+    _save_fig(fig, "robot_arm_fig")
 
 
 def draw_eefs_only():
     fig, ax = plt.subplots(figsize=(5.5, 4.6))
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
-    base = (0.0, 0.0)
+    draw_eefs_only_content(ax)
+    _save_fig(fig, "robot_arm_fig")
 
-    # single shared base rail, drawn once in a neutral color underneath
-    # all the overlaid poses
-    draw_base_rail(ax, base, "#4d4d4d", zorder=0.5)
-    draw_joint(ax, base, "#4d4d4d", radius=BASE_HALF_WIDTH, zorder=0.6)
 
-    # Plane sits centered on the wrist height: the shaft (zorder < plane)
-    # dips into the plane's depth band and gets occluded there, as if
-    # reaching up through the surface from underneath, while the gripper
-    # (zorder > plane) draws on top of it -- so it reads as resting on the
-    # surface, fingers rising off the top, rather than skewering through.
-    draw_plane(ax, TARGET_HEIGHT, half_width=1.8)
+def compute_eef_points(base=(0.0, 0.0)):
+    """The fingertip ("eef") point of every one of the 4 arm poses, in the
+    same (x, y) frame the robot renders use -- the raw task-space
+    coordinate each full linkage figure ultimately reduces to."""
+    points = []
+    for angles, lengths in zip(ARM_POSES, ARM_LENGTHS):
+        pts, heading = forward_kinematics(base, angles, lengths)
+        points.append(gripper_tip(pts[-1], heading))
+    return points
 
-    for arm_idx, (color, angles, lengths) in enumerate(zip(PALETTE, ARM_POSES, ARM_LENGTHS)):
-        if arm_idx == 0:
-            draw_gripper_only = False
-            alpha_arm_body = 0.3
 
-        else:
-            draw_gripper_only = True
+def rotate_points(points, angle_deg, pivot):
+    """Rotate a list of (x, y) points by angle_deg (CCW) about `pivot`,
+    preserving their relative arrangement -- used to tilt the abstract
+    SE(3) plot's start->goal line to a chosen angle without touching the
+    actual arm/plane geometry."""
+    theta = np.radians(angle_deg)
+    c, s = np.cos(theta), np.sin(theta)
+    pivot = np.asarray(pivot, dtype=float)
+    rotated = []
+    for p in points:
+        v = np.asarray(p, dtype=float) - pivot
+        rv = np.array([c * v[0] - s * v[1], s * v[0] + c * v[1]])
+        rotated.append(tuple(rv + pivot))
+    return rotated
 
-        pts, heading = draw_arm(ax, base, angles, lengths, color,
-                                 draw_rail=False, shaft_zorder=0.5,
-                                 gripper_zorder=1.5, draw_gripper_only = draw_gripper_only, alpha_arm_body = alpha_arm_body)
-        draw_contact_shadow(ax, gripper_tip(pts[-1], heading))
 
-    draw_example_obstacles(ax)
-    ax.set_xlim(-2.5, 2.5)
-    ax.set_ylim(-0.5, 2.6)
+def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.2,
+                         color="#333333", lw=3.2, label="SE(3)",
+                         fontsize=15):
+    """Small corner "L" axis glyph (two arrows from a fixed origin),
+    labeled right at the origin corner -- stands in for coordinate axes
+    on the abstract SE(3) plot without the clutter of full spanning
+    tick-labeled axes."""
+    ox, oy = origin
+    ax.annotate("", xy=(ox + length, oy), xytext=(ox, oy),
+                arrowprops=dict(arrowstyle="-|>", color=color, lw=lw,
+                                 mutation_scale=22), zorder=5)
+    ax.annotate("", xy=(ox, oy + length), xytext=(ox, oy),
+                arrowprops=dict(arrowstyle="-|>", color=color, lw=lw,
+                                 mutation_scale=22), zorder=5)
+    if label:
+        ax.text(ox - 0.12, oy - 0.12, label, fontsize=fontsize, color=color,
+                 va="top", ha="right", zorder=5)
+
+
+def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
+                      obstacle_colors=None, collision_index=None):
+    """Bare x-y plot of the same task-space points/obstacles shown in the
+    robot render alongside it, labeled generically as "SE(3)" rather than
+    with literal x/y units -- collapsing the full linkage down to just its
+    eef coordinate and the obstacles it must avoid.
+
+    show_all_samples=False: only start (arm 0) and goal (arm 3), joined by
+    a single straight line -- the naive start->goal path.
+    show_all_samples=True: all 4 sampled poses along that path, joined by
+    a dashed line, one dot per sample (matching PALETTE).
+    """
+    ax.set_facecolor("white")
+    obstacle_colors = obstacle_colors or OBSTACLE_COLORS
+    for (center, radius), color in zip(obstacles, obstacle_colors):
+        ax.add_patch(Circle(center, radius, facecolor=color,
+                             edgecolor="none", alpha=0.9, zorder=2))
+
+    if show_all_samples:
+        xs = [p[0] for p in eef_points]
+        ys = [p[1] for p in eef_points]
+        ax.plot(xs, ys, color="#555555", lw=1.6, dashes=(6, 3), zorder=1)
+        for color, p in zip(PALETTE, eef_points):
+            ax.scatter([p[0]], [p[1]], s=120, color=color, zorder=3,
+                       edgecolor="white", linewidth=1.3)
+        if collision_index is not None:
+            draw_highlight_circle(ax, eef_points[collision_index], radius=0.32,
+                                   color="#e63946", lw=2.2, zorder=4)
+    else:
+        start, goal = eef_points[0], eef_points[-1]
+        ax.plot([start[0], goal[0]], [start[1], goal[1]], color="#555555",
+                lw=1.8, zorder=1)
+        ax.scatter([start[0]], [start[1]], s=140, color=PALETTE[0], zorder=3,
+                   edgecolor="white", linewidth=1.4)
+        ax.scatter([goal[0]], [goal[1]], s=140, color=PALETTE[-1], zorder=3,
+                   edgecolor="white", linewidth=1.4)
+
+    # Autoscale to the (possibly rotated) data rather than reusing the
+    # physical figure's fixed limits, which no longer bound a tilted line.
+    pad = 0.5
+    xs_all = [p[0] for p in eef_points] + [c[0] for c, _ in obstacles]
+    ys_all = [p[1] for p in eef_points] + [c[1] for c, _ in obstacles]
+    ax.set_xlim(min(xs_all) - pad, max(xs_all) + pad)
+    ax.set_ylim(min(ys_all) - pad - 0.9, max(ys_all) + pad)
     ax.set_aspect("equal")
-    ax.axis("off")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    draw_axis_indicator(ax, origin=(min(xs_all) - pad + 0.25, min(ys_all) - pad + 0.1))
 
-    fig.tight_layout()
-    fig.savefig("robot_arm_fig.png", dpi=300, facecolor="white")
-    fig.savefig("robot_arm_fig.svg", facecolor="white")
-    print("Saved robot_arm_fig.png / robot_arm_fig.svg")
+
+def catmull_rom(points, n_per_seg=30):
+    """Smooth curve passing through every point in `points` (a Catmull-Rom
+    spline) -- for a "curved interpolated path" that still hits each
+    sample exactly, instead of the straight/dashed polyline used for the
+    task-space SE(3) panels."""
+    pts = np.asarray(points, dtype=float)
+    pts_ext = np.vstack([pts[0], pts, pts[-1]])
+    curve = []
+    for i in range(1, len(pts_ext) - 2):
+        p0, p1, p2, p3 = pts_ext[i - 1], pts_ext[i], pts_ext[i + 1], pts_ext[i + 2]
+        for t in np.linspace(0.0, 1.0, n_per_seg, endpoint=False):
+            t2, t3 = t * t, t * t * t
+            point = 0.5 * ((2 * p1) + (-p0 + p2) * t +
+                            (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+                            (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
+            curve.append(point)
+    curve.append(pts[-1])
+    return np.array(curve)
+
+
+def blob_points(center, base_radius, n=80, harmonics=(2, 3, 4),
+                 amp=(0.3, 0.18, 0.1), seed=0):
+    """Points tracing a smooth, irregular closed blob around `center` --
+    radius(theta) as a sum of a few random-phase harmonics, so no spline
+    library is needed to keep it organic-looking rather than a polygon
+    with visible corners."""
+    rng = np.random.default_rng(seed)
+    phases = rng.uniform(0, 2 * np.pi, size=len(harmonics))
+    thetas = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    r = np.ones_like(thetas)
+    for k, a, phi in zip(harmonics, amp, phases):
+        r = r + a * np.cos(k * thetas + phi)
+    r = base_radius * r
+    xs = center[0] + r * np.cos(thetas)
+    ys = center[1] + r * np.sin(thetas)
+    return np.column_stack([xs, ys])
+
+
+def draw_c_obstacle(ax, center, base_radius=0.18, inflate=1.6,
+                     color="#EE0000", alpha=0.4, edge_alpha=0.9, lw=1.8,
+                     seed=0, zorder=2, label=r"$\mathcal{C}_{obs}$",
+                     fontsize=12, label_color="#333333"):
+    """A configuration-space obstacle (C-obstacle): an irregular blob,
+    inflated relative to the task-space sphere it corresponds to (C-space
+    obstacles are the Minkowski sum of the workspace obstacle with the
+    robot, so they're always at least as large and rarely still round),
+    labeled C_obs rather than drawn as a plain sphere."""
+    pts = blob_points(center, base_radius * inflate, seed=seed)
+    ax.add_patch(Polygon(pts, closed=True, facecolor=color, alpha=alpha,
+                          edgecolor=color, lw=lw, zorder=zorder))
+    ax.add_patch(Polygon(pts, closed=True, facecolor="none",
+                          edgecolor=color, alpha=edge_alpha, lw=lw,
+                          zorder=zorder + 0.05))
+    if label:
+        ax.text(center[0], center[1], label, fontsize=fontsize,
+                color=label_color, ha="center", va="center", zorder=zorder + 1)
+
+
+def bend_path(points, amount=0.6):
+    """Offset each point perpendicular to the straight start->goal line by
+    amount*sin(pi*t) (t = 0 at start, 1 at goal) -- a genuine bend, since
+    q-space points sampled from an SE(3)-straight-line interpolation are
+    themselves collinear and a spline through them is just that same
+    straight line."""
+    points = np.asarray(points, dtype=float)
+    start, goal = points[0], points[-1]
+    direction = goal - start
+    length = np.linalg.norm(direction)
+    if length < 1e-9:
+        return [tuple(p) for p in points]
+    unit = direction / length
+    normal = np.array([-unit[1], unit[0]])
+    n = len(points)
+    bent = [p + normal * (amount * np.sin(np.pi * i / (n - 1))) for i, p in enumerate(points)]
+    return [tuple(p) for p in bent]
+
+
+def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
+                         bend_amount=0.7, collision_index=None,
+                         colliding_obstacle_index=None, obstacle_colors=None):
+    """The q-space counterpart of draw_se3_content()'s "all samples" panel:
+    a smooth curved interpolated path (catmull_rom, bent off the straight
+    line via bend_path) through the same 4 sampled configurations,
+    threading between C-obstacles (blobs) instead of a straight/dashed
+    line past spherical ones.
+
+    Since this is an illustrative 2D stand-in (a link collision has no
+    literal position in a "1 point per sample" plot), the actual collision
+    is made unambiguous rather than left to whatever the generic bend
+    happens to produce: pass `collision_index` (which sample) and
+    `colliding_obstacle_index` (which entry in `obstacles` it hit) and the
+    blob for that obstacle is snapped onto that sample's point, while any
+    *other* obstacle found sitting too close to a (non-colliding) sample
+    is pushed clear -- so only the true collision reads as touching."""
+    ax.set_facecolor("white")
+    obstacle_colors = obstacle_colors or OBSTACLE_COLORS
+
+    bent_points = bend_path(eef_points, amount=bend_amount)
+    bent_points_arr = np.asarray(bent_points)
+
+    centers = [np.asarray(c, dtype=float) for c, _ in obstacles]
+    radii = [r for _, r in obstacles]
+    if collision_index is not None and colliding_obstacle_index is not None:
+        centers[colliding_obstacle_index] = bent_points_arr[collision_index].copy()
+    for j, center in enumerate(centers):
+        if j == colliding_obstacle_index:
+            continue
+        for k, p in enumerate(bent_points_arr):
+            if k == collision_index:
+                continue
+            min_clear = radii[j] * 1.6 + 0.35
+            offset = center - p
+            dist = np.linalg.norm(offset)
+            if dist < min_clear:
+                direction = offset / dist if dist > 1e-6 else np.array([0.0, 1.0])
+                centers[j] = p + direction * min_clear
+
+    for i, (center, radius) in enumerate(zip(centers, radii)):
+        draw_c_obstacle(ax, center, base_radius=radius, seed=i,
+                         color=obstacle_colors[i])
+
+    curve = catmull_rom(bent_points, n_per_seg=40)
+    ax.plot(curve[:, 0], curve[:, 1], color=path_color, lw=2.0, zorder=1)
+    for color, p in zip(PALETTE, bent_points):
+        ax.scatter([p[0]], [p[1]], s=120, color=color, zorder=3,
+                   edgecolor="white", linewidth=1.3)
+    if collision_index is not None:
+        draw_highlight_circle(ax, bent_points[collision_index], radius=0.32,
+                               color="#e63946", lw=2.2, zorder=4)
+
+    pad = 0.7
+    xs_all = ([p[0] for p in bent_points] + [c[0] for c in centers] +
+              list(curve[:, 0]))
+    ys_all = ([p[1] for p in bent_points] + [c[1] for c in centers] +
+              list(curve[:, 1]))
+    ax.set_xlim(min(xs_all) - pad, max(xs_all) + pad)
+    ax.set_ylim(min(ys_all) - pad - 0.9, max(ys_all) + pad)
+    ax.set_aspect("equal")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    draw_axis_indicator(ax, origin=(min(xs_all) - pad + 0.25, min(ys_all) - pad + 0.1),
+                         label="Q")
+
+
+def draw_composite_start_and_eefs():
+    """Image 1: draw_start_config_end_only() and draw_eefs_only() on the
+    left, each paired on the right with a bare SE(3) task-space plot of
+    the same points/obstacles -- start/goal + one line for the first row,
+    all 4 samples + dashed path for the second."""
+    fig, axes = plt.subplots(2, 2, figsize=(11.0, 9.2),
+                              gridspec_kw={"width_ratios": [1, 1]})
+    fig.patch.set_facecolor("white")
+    for ax in axes.flat:
+        ax.set_facecolor("white")
+
+    draw_start_config_end_only_content(axes[0, 0])
+    draw_eefs_only_content(axes[1, 0])
+
+    eef_points = compute_eef_points()
+    link_obs, plane_obs, _ = make_example_obstacles()
+    obstacle_radius = 0.18
+
+    # Tilt the abstract SE(3) start->goal line to ~40 degrees (rather than
+    # the near-horizontal angle it inherits from the arms' shared height),
+    # rotating the obstacles along with it about the start point so their
+    # placement relative to the path is unchanged.
+    start, goal = eef_points[0], eef_points[-1]
+    current_angle = np.degrees(np.arctan2(goal[1] - start[1], goal[0] - start[0]))
+    delta = 40.0 - current_angle
+    eef_points = rotate_points(eef_points, delta, pivot=start)
+    link_obs, plane_obs = rotate_points([link_obs, plane_obs], delta, pivot=start)
+    obstacles = [(link_obs, obstacle_radius), (plane_obs, obstacle_radius)]
+
+    draw_se3_content(axes[0, 1], eef_points, obstacles, show_all_samples=False)
+    draw_se3_content(axes[1, 1], eef_points, obstacles, show_all_samples=True)
+
+    _save_fig(fig, "robot_arm_fig_composite_start_eefs")
+
+
+def draw_composite_start_eefs_all_no_plane_obstacle():
+    """Image 2: draw_start_config_end_only(), draw_eefs_only(), then
+    draw_all() stacked on the left -- with the plane obstacle lifted well
+    clear of the plane and every arm (still visible, just guaranteed
+    collision-free) -- each paired on the right with an abstract plot:
+    SE(3) task-space (straight line, then all 4 samples) for the first
+    two rows, and a q-space plot (curved interpolated path, C-obstacle
+    blobs) for the draw_all() row."""
+    fig, axes = plt.subplots(3, 2, figsize=(11.0, 13.8))
+    fig.patch.set_facecolor("white")
+    for ax in axes.flat:
+        ax.set_facecolor("white")
+
+    draw_start_config_end_only_content(axes[0, 0], plane_obstacle_y_offset=0.75)
+    draw_eefs_only_content(axes[1, 0], plane_obstacle_y_offset=0.75)
+    draw_all_content(axes[2, 0], plane_obstacle_y_offset=0.75)
+
+    eef_points = compute_eef_points()
+    # Same obstacles the left-column draw_all_content() panel actually
+    # uses (plane obstacle lifted clear via the same offset), not the
+    # unlifted default -- otherwise the abstract plots silently disagree
+    # with what the robot render shows.
+    link_obs, plane_obs, _ = make_example_obstacles(plane_obstacle_y_offset=0.75)
+    obstacle_radius = 0.18
+
+    # Which sample actually collides (against these same obstacles), so
+    # the abstract plots can flag it the same way the robot render does.
+    base = (0.0, 0.0)
+    real_obstacles = [(link_obs, obstacle_radius), (plane_obs, obstacle_radius)]
+    collision_index = None
+    colliding_obstacle_index = None
+    for i, (angles, lengths) in enumerate(zip(ARM_POSES, ARM_LENGTHS)):
+        pts, heading = forward_kinematics(base, angles, lengths)
+        for j, obs in enumerate(real_obstacles):
+            if arm_obstacle_collision(pts, [obs]) is not None:
+                collision_index, colliding_obstacle_index = i, j
+                break
+        if collision_index is not None:
+            break
+
+    start, goal = eef_points[0], eef_points[-1]
+    current_angle = np.degrees(np.arctan2(goal[1] - start[1], goal[0] - start[0]))
+    delta = 40.0 - current_angle
+    eef_points = rotate_points(eef_points, delta, pivot=start)
+    link_obs, plane_obs = rotate_points([link_obs, plane_obs], delta, pivot=start)
+    obstacles = [(link_obs, obstacle_radius), (plane_obs, obstacle_radius)]
+
+    draw_se3_content(axes[0, 1], eef_points, obstacles, show_all_samples=False)
+    # No collision_index here: this SE(3) panel is just the raw samples --
+    # at this stage nothing has checked them against obstacles yet, so it
+    # shouldn't presuppose which one (if any) turns out to collide.
+    draw_se3_content(axes[1, 1], eef_points, obstacles, show_all_samples=True)
+    draw_qspace_content(axes[2, 1], eef_points, obstacles,
+                         collision_index=collision_index,
+                         colliding_obstacle_index=colliding_obstacle_index)
+
+    _save_fig(fig, "robot_arm_fig_composite_start_eefs_all")
 
 
 if __name__ == "__main__":
-    draw_all()
-    # draw_start_config_end_only()
-    # draw_eefs_only()
+    draw_composite_start_and_eefs()
+    draw_composite_start_eefs_all_no_plane_obstacle()
