@@ -11,13 +11,13 @@ Tweak ARM_POSES / PALETTE / sizes below to reuse for other figures.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, Circle, Ellipse, Polygon
+from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Circle, Ellipse, Polygon
 import math
 # ----------------------------------------------------------------------
 # style constants
 # ----------------------------------------------------------------------
 LINK_HALF_WIDTH = 0.05       # half-width of arm link rectangles
-BASE_HALF_WIDTH = 0.075       # half-width (thickness) of the base rail
+BASE_HALF_WIDTH = 0.015       # half-width (thickness) of the base rail
 JOINT_RADIUS = 0.05         # pivot disc radius at each rotational joint
 
 STUB_LEN = 0.0028              # stub length before the gripper crossbar
@@ -310,19 +310,17 @@ def draw_target(ax, pos, color="#d7263d", w=0.22, h=0.55, zorder=4, rotation=0):
     ax.add_patch(box)
 
 
-def draw_sphere(ax, pos, radius=0.18, color="#d7263d", zorder=4,
-                 highlight_color="#ffffff", highlight_alpha=0.35):
-    """Small filled-circle 'sphere' obstacle marker, with an offset
-    lighter highlight ellipse to read as a shaded ball rather than a flat
-    disc."""
-    x, y = pos
-    ax.add_patch(Circle((x, y), radius, facecolor=color, edgecolor="none",
+def draw_sphere(ax, pos, radius=0.18, color="#8a5a58", zorder=4, hatch=None,
+                 edgecolor="#7a1420"):
+    """Small filled-circle obstacle marker -- flat fill, no glossy
+    highlight, matching the flat style used everywhere else in the
+    figure (rather than reading as a shiny 3D ball). Pass `hatch` (e.g.
+    "////") to distinguish an obstacle by texture rather than a second
+    color."""
+    ax.add_patch(Circle(pos, radius, facecolor=color,
+                         edgecolor=edgecolor if hatch else "none",
+                         linewidth=0.7 if hatch else 0, hatch=hatch,
                          zorder=zorder))
-    hl_dx, hl_dy = -0.35 * radius, 0.35 * radius
-    ax.add_patch(Ellipse((x + hl_dx, y + hl_dy), width=0.6 * radius,
-                          height=0.4 * radius, facecolor=highlight_color,
-                          edgecolor="none", alpha=highlight_alpha,
-                          zorder=zorder + 0.01))
 
 
 def draw_highlight_circle(ax, center, radius=0.55, color="#d7263d",
@@ -330,6 +328,22 @@ def draw_highlight_circle(ax, center, radius=0.55, color="#d7263d",
     circ = Circle(center, radius, fill=False, edgecolor=color, lw=lw,
                   zorder=zorder)
     ax.add_patch(circ)
+
+
+def draw_success_mark(ax, center, radius=0.16, color="#2ecc71",
+                       mark_color="white", lw=2.4, zorder=10):
+    """Filled green circle with a white checkmark -- the "no collision
+    found here" counterpart to draw_highlight_circle()'s red ring."""
+    ax.add_patch(Circle(center, radius, facecolor=color, edgecolor="none",
+                         zorder=zorder))
+    cx, cy = center
+    check = np.array([
+        [cx - 0.5 * radius, cy - 0.02 * radius],
+        [cx - 0.15 * radius, cy - 0.4 * radius],
+        [cx + 0.55 * radius, cy + 0.35 * radius],
+    ])
+    ax.plot(check[:, 0], check[:, 1], color=mark_color, lw=lw,
+            solid_capstyle="round", solid_joinstyle="round", zorder=zorder + 1)
 
 
 def draw_plane(ax, y, half_width, skew=0.25, depth=0.55, color="#b5b0a8",
@@ -402,7 +416,7 @@ def draw_plane(ax, y, half_width, skew=0.25, depth=0.55, color="#b5b0a8",
 def draw_arm(ax, base, angles, lengths, color, draw_rail=True,
              draw_gripper_only=False, shaft_zorder=0.5, gripper_zorder=1.5,
              alpha_arm_body=1.0, in_collision=False, collision_point=None,
-             collision_color="#e63946", collision_ring_radius=0.21,
+             collision_color="#e63946", collision_ring_radius=0.15,
              recolor_on_collision=True):
     """Draw a full arm: base rail, rectangular links + pivot discs,
     rectangular gripper. The shaft is drawn *below* the constraint plane's
@@ -505,43 +519,47 @@ def make_example_obstacles(arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
     lengths = ARM_LENGTHS[arm_idx]
     pts, _ = forward_kinematics(base, angles, lengths)
     link_obstacle = tuple(link_point(pts, link_idx, t))
-    link_obstacle = (link_obstacle[0] + 0.55, link_obstacle[1] + 0.025)
+    link_obstacle = (link_obstacle[0] + -0.2, link_obstacle[1] + 0.025)
     plane_obstacle = (-0.45, TARGET_HEIGHT - 0.3 + plane_obstacle_y_offset)
     return link_obstacle, plane_obstacle, arm_idx
 
 
 def draw_example_obstacles(ax, arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
-                            base=(0.0, 0.0), colors=None, radius=0.18,
-                            include_plane_obstacle=True,
+                            base=(0.0, 0.0), colors=None, hatches=None,
+                            radius=0.18, include_plane_obstacle=True,
                             plane_obstacle_y_offset=0.0):
     """Draws the two obstacles from make_example_obstacles() as spheres
-    (draw_sphere()) rather than boxes -- link and plane obstacles colored
-    differently (OBSTACLE_COLORS by default) so they read as distinct
-    objects across every panel, not just "the red one(s)". Set
-    include_plane_obstacle=False to draw (and return) only the link
-    obstacle."""
+    (draw_sphere()) rather than boxes -- link and plane obstacles share
+    one color (OBSTACLE_COLORS by default) and are told apart by texture
+    (OBSTACLE_HATCHES) instead, so they read as distinct objects without
+    needing two different colors. Set include_plane_obstacle=False to
+    draw (and return) only the link obstacle."""
     colors = colors or OBSTACLE_COLORS
+    hatches = hatches or OBSTACLE_HATCHES
     link_obstacle, plane_obstacle, _ = make_example_obstacles(
         arm_idx=arm_idx, link_idx=link_idx, t=t, side_x=side_x, base=base,
         plane_obstacle_y_offset=plane_obstacle_y_offset)
-    draw_sphere(ax, link_obstacle, radius=radius, color=colors[0], zorder=1.2)
+    draw_sphere(ax, link_obstacle, radius=radius, color=colors[0],
+                hatch=hatches[0], zorder=1.2)
     if include_plane_obstacle:
-        draw_sphere(ax, plane_obstacle, radius=radius, color=colors[1], zorder=1.2)
+        draw_sphere(ax, plane_obstacle, radius=radius, color=colors[1],
+                    hatch=hatches[1], zorder=1.2)
     return link_obstacle, (plane_obstacle if include_plane_obstacle else None)
 
 
 # ----------------------------------------------------------------------
 # example figure: four arm poses side by side.
-# Palette: ColorBrewer "Set2" -- the pastel/muted counterpart of "Dark2"
-# (same 4 hues, softer saturation), for a lighter look on a white
-# background.
+# Palette: ColorBrewer "Dark2" -- the same 4 hues as before but back to
+# full saturation (Set2's pastel version read as too washed-out/muted).
 # ----------------------------------------------------------------------
-PALETTE = ["#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3"]
+PALETTE = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"]
 
-# (link_obstacle, plane_obstacle) colors -- distinct from each other and
-# from PALETTE, so which obstacle is which stays clear across every panel
-# (physical render, SE(3) plots, Q-space plot) instead of "two red balls".
-OBSTACLE_COLORS = ("#e63946", "#ffb703")
+# Both obstacles share one pale, dusty red -- deliberately much lighter
+# than the collision-highlight ring's bright "#e63946" (draw_arm's
+# collision_color / draw_highlight_circle), so an obstacle and a "this
+# collided" ring drawn in the same spot never read as the same red.
+OBSTACLE_COLORS = ("#ec6670", "#e9505b")
+OBSTACLE_HATCHES = (None, None)
 
 LINK_LENGTHS = (1.0, 1.1)
 
@@ -594,11 +612,27 @@ ARM_POSES = [
 ]
 
 
+def draw_ground_hatch(ax, base, half_len=BASE_RAIL_HALF, n=11,
+                       tick_len=0.11, angle_deg=45, gap=0.0,
+                       color="#4d4d4d", lw=1.0, zorder=0.4):
+    """Diagonal "////" ground-hatch ticks just below the base rail -- the
+    standard architectural-drawing symbol for "this is fixed to the
+    ground", instead of the rail floating on bare white space."""
+    x0, y0 = base
+    y0 = y0 - BASE_HALF_WIDTH - gap
+    dx = tick_len * np.cos(np.radians(angle_deg))
+    dy = tick_len * np.sin(np.radians(angle_deg))
+    for x in np.linspace(x0 - half_len, x0 + half_len, n):
+        ax.plot([x, x - dx], [y0, y0 - dy], color=color, lw=lw,
+                 solid_capstyle="butt", zorder=zorder)
+
+
 def _draw_shared_base_and_plane(ax):
     """Base rail + pivot + constraint-manifold plane, common to every
     panel below."""
     base = (0.0, 0.0)
     draw_base_rail(ax, base, "#4d4d4d", zorder=0.5)
+    draw_ground_hatch(ax, base)
     draw_joint(ax, base, "#4d4d4d", radius=BASE_HALF_WIDTH, zorder=0.6)
     # Plane sits centered on the wrist height: the shaft (zorder < plane)
     # dips into the plane's depth band and gets occluded there, as if
@@ -609,9 +643,9 @@ def _draw_shared_base_and_plane(ax):
     return base
 
 
-def _finish_panel(ax):
+def _finish_panel(ax, ylim=(-0.5, 2.6)):
     ax.set_xlim(-2.5, 2.5)
-    ax.set_ylim(-0.5, 2.6)
+    ax.set_ylim(*ylim)
     ax.set_aspect("equal")
     ax.axis("off")
 
@@ -727,10 +761,17 @@ def draw_eefs_only_content(ax, plane_obstacle_y_offset=0.0):
     _finish_panel(ax)
 
 
-def _save_fig(fig, name):
-    fig.tight_layout()
-    fig.savefig(f"{name}.png", dpi=300, facecolor="white")
-    fig.savefig(f"{name}.svg", facecolor="white")
+def _save_fig(fig, name, skip_tight_layout=False, crop=True, **tight_layout_kwargs):
+    if not skip_tight_layout:
+        fig.tight_layout(**tight_layout_kwargs)
+    # bbox_inches="tight" crops any leftover blank canvas around the
+    # already-laid-out content -- it only trims the outer margin, it
+    # doesn't touch the internal spacing set up above.
+    save_kwargs = dict(facecolor="white")
+    if crop:
+        save_kwargs.update(bbox_inches="tight", pad_inches=0.02)
+    fig.savefig(f"{name}.png", dpi=300, **save_kwargs)
+    fig.savefig(f"{name}.svg", **save_kwargs)
     print(f"Saved {name}.png / {name}.svg")
 
 
@@ -785,8 +826,13 @@ def rotate_points(points, angle_deg, pivot):
     return rotated
 
 
-def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.2,
-                         color="#333333", lw=3.2, label="SE(3)",
+LABEL_FONT = "serif"  # matches a paper's body text far better than the
+                       # default sans-serif for the SE(3)/Q/(a)(b)(c)/IK
+                       # annotation text sprinkled through these figures.
+
+
+def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.0,
+                         color="#333333", lw=2., label="SE(3)",
                          fontsize=15):
     """Small corner "L" axis glyph (two arrows from a fixed origin),
     labeled right at the origin corner -- stands in for coordinate axes
@@ -795,17 +841,18 @@ def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.2,
     ox, oy = origin
     ax.annotate("", xy=(ox + length, oy), xytext=(ox, oy),
                 arrowprops=dict(arrowstyle="-|>", color=color, lw=lw,
-                                 mutation_scale=22), zorder=5)
+                                 mutation_scale=12), zorder=5)
     ax.annotate("", xy=(ox, oy + length), xytext=(ox, oy),
                 arrowprops=dict(arrowstyle="-|>", color=color, lw=lw,
-                                 mutation_scale=22), zorder=5)
+                                 mutation_scale=12), zorder=5)
     if label:
         ax.text(ox - 0.12, oy - 0.12, label, fontsize=fontsize, color=color,
-                 va="top", ha="right", zorder=5)
+                 va="top", ha="right", zorder=5, family=LABEL_FONT)
 
 
 def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
-                      obstacle_colors=None, collision_index=None):
+                      obstacle_colors=None, obstacle_hatches=None,
+                      collision_index=None):
     """Bare x-y plot of the same task-space points/obstacles shown in the
     robot render alongside it, labeled generically as "SE(3)" rather than
     with literal x/y units -- collapsing the full linkage down to just its
@@ -818,9 +865,12 @@ def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
     """
     ax.set_facecolor("white")
     obstacle_colors = obstacle_colors or OBSTACLE_COLORS
-    for (center, radius), color in zip(obstacles, obstacle_colors):
+    obstacle_hatches = obstacle_hatches or OBSTACLE_HATCHES
+    for (center, radius), color, hatch in zip(obstacles, obstacle_colors, obstacle_hatches):
         ax.add_patch(Circle(center, radius, facecolor=color,
-                             edgecolor="none", alpha=0.9, zorder=2))
+                             edgecolor="#7a1420" if hatch else "none",
+                             linewidth=0.7 if hatch else 0, hatch=hatch,
+                             alpha=0.9, zorder=2))
 
     if show_all_samples:
         xs = [p[0] for p in eef_points]
@@ -897,29 +947,34 @@ def blob_points(center, base_radius, n=80, harmonics=(2, 3, 4),
 def draw_c_obstacle(ax, center, base_radius=0.18, inflate=1.6,
                      color="#EE0000", alpha=0.4, edge_alpha=0.9, lw=1.8,
                      seed=0, zorder=2, label=r"$\mathcal{C}_{obs}$",
-                     fontsize=12, label_color="#333333"):
+                     fontsize=12, label_color="#333333", hatch=None):
     """A configuration-space obstacle (C-obstacle): an irregular blob,
     inflated relative to the task-space sphere it corresponds to (C-space
     obstacles are the Minkowski sum of the workspace obstacle with the
     robot, so they're always at least as large and rarely still round),
-    labeled C_obs rather than drawn as a plain sphere."""
+    labeled C_obs rather than drawn as a plain sphere. Pass `hatch` to
+    distinguish one obstacle from another by texture instead of color."""
     pts = blob_points(center, base_radius * inflate, seed=seed)
     ax.add_patch(Polygon(pts, closed=True, facecolor=color, alpha=alpha,
                           edgecolor=color, lw=lw, zorder=zorder))
     ax.add_patch(Polygon(pts, closed=True, facecolor="none",
                           edgecolor=color, alpha=edge_alpha, lw=lw,
-                          zorder=zorder + 0.05))
+                          hatch=hatch, zorder=zorder + 0.05))
     if label:
         ax.text(center[0], center[1], label, fontsize=fontsize,
                 color=label_color, ha="center", va="center", zorder=zorder + 1)
 
 
-def bend_path(points, amount=0.6):
+def bend_path(points, amount=0.6, cycles=1.0):
     """Offset each point perpendicular to the straight start->goal line by
-    amount*sin(pi*t) (t = 0 at start, 1 at goal) -- a genuine bend, since
-    q-space points sampled from an SE(3)-straight-line interpolation are
-    themselves collinear and a spline through them is just that same
-    straight line."""
+    amount*sin(2*pi*cycles*t) (t = 0 at start, 1 at goal) -- a genuine
+    bend, since q-space points sampled from an SE(3)-straight-line
+    interpolation are themselves collinear and a spline through them is
+    just that same straight line.
+
+    cycles=1.0 (the default) swings to one side and back past center to
+    the other side -- non-monotonic, like a mirrored "Z" -- rather than
+    cycles=0.5's single one-sided hump."""
     points = np.asarray(points, dtype=float)
     start, goal = points[0], points[-1]
     direction = goal - start
@@ -929,13 +984,15 @@ def bend_path(points, amount=0.6):
     unit = direction / length
     normal = np.array([-unit[1], unit[0]])
     n = len(points)
-    bent = [p + normal * (amount * np.sin(np.pi * i / (n - 1))) for i, p in enumerate(points)]
+    bent = [p + normal * (amount * np.sin(2 * np.pi * cycles * i / (n - 1)))
+            for i, p in enumerate(points)]
     return [tuple(p) for p in bent]
 
 
 def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
                          bend_amount=0.7, collision_index=None,
-                         colliding_obstacle_index=None, obstacle_colors=None):
+                         colliding_obstacle_index=None, obstacle_colors=None,
+                         obstacle_hatches=None):
     """The q-space counterpart of draw_se3_content()'s "all samples" panel:
     a smooth curved interpolated path (catmull_rom, bent off the straight
     line via bend_path) through the same 4 sampled configurations,
@@ -952,6 +1009,7 @@ def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
     is pushed clear -- so only the true collision reads as touching."""
     ax.set_facecolor("white")
     obstacle_colors = obstacle_colors or OBSTACLE_COLORS
+    obstacle_hatches = obstacle_hatches or OBSTACLE_HATCHES
 
     bent_points = bend_path(eef_points, amount=bend_amount)
     bent_points_arr = np.asarray(bent_points)
@@ -972,10 +1030,12 @@ def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
             if dist < min_clear:
                 direction = offset / dist if dist > 1e-6 else np.array([0.0, 1.0])
                 centers[j] = p + direction * min_clear
-
+    
+    # print(centers, radii)
+    centers[1] = [-1.3075138205,  3.016659015]
     for i, (center, radius) in enumerate(zip(centers, radii)):
         draw_c_obstacle(ax, center, base_radius=radius, seed=i,
-                         color=obstacle_colors[i])
+                         color=obstacle_colors[i], hatch=obstacle_hatches[i])
 
     curve = catmull_rom(bent_points, n_per_seg=40)
     ax.plot(curve[:, 0], curve[:, 1], color=path_color, lw=2.0, zorder=1)
@@ -983,7 +1043,7 @@ def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
         ax.scatter([p[0]], [p[1]], s=120, color=color, zorder=3,
                    edgecolor="white", linewidth=1.3)
     if collision_index is not None:
-        draw_highlight_circle(ax, bent_points[collision_index], radius=0.32,
+        draw_highlight_circle(ax, bent_points[collision_index], radius=0.18,
                                color="#e63946", lw=2.2, zorder=4)
 
     pad = 0.7
@@ -1003,21 +1063,32 @@ def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
 
 
 def draw_composite_start_and_eefs():
-    """Image 1: draw_start_config_end_only() and draw_eefs_only() on the
-    left, each paired on the right with a bare SE(3) task-space plot of
-    the same points/obstacles -- start/goal + one line for the first row,
-    all 4 samples + dashed path for the second."""
-    fig, axes = plt.subplots(2, 2, figsize=(11.0, 9.2),
-                              gridspec_kw={"width_ratios": [1, 1]})
+    """Image 1, as a 2x2 grid matching the layout/sizing used for image 2:
+    top row is the two robot renders (draw_start_config_end_only(),
+    draw_eefs_only()); bottom row is each one's SE(3) plot directly below
+    it (straight start->goal line, then all 4 samples). Top-row panels
+    are sized to match the original 3x2 grid's reference panel size
+    exactly; the bottom row is only slightly smaller and sits close
+    beneath it; (a)/(b) labels sit under each column."""
+    fig, axes = plt.subplots(2, 2, figsize=(11.5, 8.2),
+                              gridspec_kw={"height_ratios": [1.0, 0.75],
+                                           "wspace": -0.15, "hspace": -0.1})
     fig.patch.set_facecolor("white")
     for ax in axes.flat:
         ax.set_facecolor("white")
+    for ax in axes[0, :]:
+        ax.set_anchor("S")
+    for ax in axes[1, :]:
+        ax.set_anchor("N")
 
-    draw_start_config_end_only_content(axes[0, 0])
-    draw_eefs_only_content(axes[1, 0])
+    # Plane obstacle nudged up (per earlier request), consistently in
+    # both the physical panels and the abstract SE(3) ones.
+    plane_obstacle_y_offset = 0.45
+    draw_start_config_end_only_content(axes[0, 0], plane_obstacle_y_offset=plane_obstacle_y_offset)
+    draw_eefs_only_content(axes[0, 1], plane_obstacle_y_offset=plane_obstacle_y_offset)
 
     eef_points = compute_eef_points()
-    link_obs, plane_obs, _ = make_example_obstacles()
+    link_obs, plane_obs, _ = make_example_obstacles(plane_obstacle_y_offset=plane_obstacle_y_offset)
     obstacle_radius = 0.18
 
     # Tilt the abstract SE(3) start->goal line to ~40 degrees (rather than
@@ -1031,34 +1102,77 @@ def draw_composite_start_and_eefs():
     link_obs, plane_obs = rotate_points([link_obs, plane_obs], delta, pivot=start)
     obstacles = [(link_obs, obstacle_radius), (plane_obs, obstacle_radius)]
 
-    draw_se3_content(axes[0, 1], eef_points, obstacles, show_all_samples=False)
+    draw_se3_content(axes[1, 0], eef_points, obstacles, show_all_samples=False)
     draw_se3_content(axes[1, 1], eef_points, obstacles, show_all_samples=True)
+    for ax in axes[1, :]:
+        bottom, top = ax.get_ylim()
+        ax.set_ylim(bottom, top - 0.35)
 
-    _save_fig(fig, "robot_arm_fig_composite_start_eefs")
+    fig.subplots_adjust(left=0.02, right=0.99, top=0.97, bottom=0.09,
+                         wspace=0.204, hspace=0.03)
+    fig.canvas.draw()
+
+    col_letters = "ab"
+    bottoms = [axes[1, c].get_position().y0 for c in range(2)]
+    label_y = min(bottoms) + 0.05
+    for c, letter in enumerate(col_letters):
+        top_box = axes[0, c].get_position()
+        x_center = (top_box.x0 + top_box.x1) / 2.0
+        fig.text(x_center, label_y, f"({letter})", fontsize=16,
+                  color="#333333", ha="center", va="top", zorder=10,
+                  family=LABEL_FONT)
+
+    _save_fig(fig, "robot_arm_fig_composite_start_eefs", skip_tight_layout=True)
 
 
 def draw_composite_start_eefs_all_no_plane_obstacle():
-    """Image 2: draw_start_config_end_only(), draw_eefs_only(), then
-    draw_all() stacked on the left -- with the plane obstacle lifted well
-    clear of the plane and every arm (still visible, just guaranteed
-    collision-free) -- each paired on the right with an abstract plot:
-    SE(3) task-space (straight line, then all 4 samples) for the first
-    two rows, and a q-space plot (curved interpolated path, C-obstacle
-    blobs) for the draw_all() row."""
-    fig, axes = plt.subplots(3, 2, figsize=(11.0, 13.8))
+    """Image 2, as a 2x3 grid: top row is each abstract plot (SE(3)
+    straight line, SE(3) all 4 samples, Q-space curved path + C-obstacle
+    blobs); bottom row is the two robot renders directly below it
+    (draw_eefs_only(), draw_all() -- with the plane obstacle lifted well
+    clear of the plane and every arm, still visible but guaranteed
+    collision-free). An "IK" arrow sits between the eefs/all columns,
+    marking that transition as where the SE(3) samples actually get
+    resolved into q via inverse kinematics."""
+    # Top row (abstract SE(3)/Q plots) only slightly smaller than the
+    # bottom row, and pulled in tight above it -- a supporting note,
+    # not a second equally-weighted row, but still clearly legible.
+    # figsize/wspace tuned so each bottom-row panel comes out at exactly
+    # the same physical size (~5.06in x 3.14in) as the original 3x2
+    # grid's robot-render column -- bottom row must NOT shrink from that
+    # reference, only the top row is allowed to be slightly smaller.
+    fig, axes = plt.subplots(2, 2, figsize=(10.5, 8.2),
+                              gridspec_kw={"height_ratios": [0.75, 1.0],
+                                           "wspace": -0.15, "hspace": -0.25})
     fig.patch.set_facecolor("white")
     for ax in axes.flat:
         ax.set_facecolor("white")
+    # Anchor top row to the bottom and bottom row to the top of their
+    # respective cells: equal-aspect axes otherwise center their (much
+    # smaller than the cell) actual box, which is what was leaving a big
+    # visible gap between the two rows no matter how small hspace got.
+    for ax in axes[0, :]:
+        ax.set_anchor("S")
+    for ax in axes[1, :]:
+        ax.set_anchor("N")
 
-    draw_start_config_end_only_content(axes[0, 0], plane_obstacle_y_offset=0.75)
-    draw_eefs_only_content(axes[1, 0], plane_obstacle_y_offset=0.75)
-    draw_all_content(axes[2, 0], plane_obstacle_y_offset=0.75)
+    # draw_start_config_end_only_content(axes[1, 0], plane_obstacle_y_offset=0.75)
+    draw_eefs_only_content(axes[1, 0], plane_obstacle_y_offset=0.65)
+    # Column (b) checks each gripper against the obstacles and finds none
+    # colliding -- a green checkmark flags that success, the same way
+    # column (c)'s red ring flags the failure it does find.
+    # draw_success_mark(axes[1, 1], (0.8, 0.65))
+    draw_all_content(axes[1, 1], plane_obstacle_y_offset=0.65)
+    # (Deliberately NOT trimming row 1's ylim here: with equal aspect,
+    # shrinking the data y-range shrinks the rendered box too -- that's
+    # what was quietly shrinking the bottom row below the reference size.
+    # The small blank margin below the base rail is left as-is instead.)
 
     eef_points = compute_eef_points()
-    # Same obstacles the left-column draw_all_content() panel actually
-    # uses (plane obstacle lifted clear via the same offset), not the
-    # unlifted default -- otherwise the abstract plots silently disagree
-    # with what the robot render shows.
+    # Same obstacles the top-row draw_all_content() panel actually uses
+    # (plane obstacle lifted clear via the same offset), not the unlifted
+    # default -- otherwise the abstract plots silently disagree with what
+    # the robot render shows.
     link_obs, plane_obs, _ = make_example_obstacles(plane_obstacle_y_offset=0.75)
     obstacle_radius = 0.18
 
@@ -1084,18 +1198,130 @@ def draw_composite_start_eefs_all_no_plane_obstacle():
     link_obs, plane_obs = rotate_points([link_obs, plane_obs], delta, pivot=start)
     obstacles = [(link_obs, obstacle_radius), (plane_obs, obstacle_radius)]
 
-    draw_se3_content(axes[0, 1], eef_points, obstacles, show_all_samples=False)
+    # draw_se3_content(axes[0, 0], eef_points, obstacles, show_all_samples=False)
     # No collision_index here: this SE(3) panel is just the raw samples --
     # at this stage nothing has checked them against obstacles yet, so it
     # shouldn't presuppose which one (if any) turns out to collide.
-    draw_se3_content(axes[1, 1], eef_points, obstacles, show_all_samples=True)
-    draw_qspace_content(axes[2, 1], eef_points, obstacles,
+    draw_se3_content(axes[0, 0], eef_points, obstacles, show_all_samples=True)
+    draw_qspace_content(axes[0, 1], eef_points, obstacles,
                          collision_index=collision_index,
                          colliding_obstacle_index=colliding_obstacle_index)
+    # Trim the blank margin above the topmost point in each top-row
+    # panel -- with anchor="S" this dead space was sitting right at the
+    # seam with row 1, same issue as the row-1 trim above.
+    for ax in axes[0, :]:
+        bottom, top = ax.get_ylim()
+        ax.set_ylim(bottom, top - 0.35)
 
-    _save_fig(fig, "robot_arm_fig_composite_start_eefs_all")
+    # Exact margins (not tight_layout, which would recompute its own and
+    # drift away from the size match above) -- solved so column width
+    # comes out to the reference ~5.06in and rows sit close together.
+    fig.subplots_adjust(left=0.02, right=0.99, top=0.97, bottom=0.09,
+                         wspace=0.08, hspace=0.03)
+    # "IK" arrow between the eefs (col 1) and all (col 2) columns, at the
+    # bottom row's vertical level -- placed in figure fraction coordinates
+    # after a draw pass so it lines up with the actual (post-aspect-
+    # shrink) axes positions rather than their nominal cells.
+    fig.canvas.draw()
+    box_eefs = axes[1, 0].get_position()
+    box_all = axes[1, 1].get_position()
+    # x from the plot row (row 0): the robot-render row's equal-aspect
+    # boxes overlap in x by design (negative wspace, narrower actual
+    # content than their nominal cells), so box_eefs.x1/box_all.x0 can
+    # cross and flip the arrow's direction -- the plot row's boxes don't
+    # overlap and its columns line up with the same columns below.
+    box_se3 = axes[0, 0].get_position()
+    box_qspace = axes[0, 1].get_position()
+    y_mid = (box_eefs.y0 + box_eefs.y1) / 2.0 + 0.25
+    x_start = box_se3.x1 + 0.012
+    x_end = box_qspace.x0 - 0.012
+    # Bold *outlined* chevron (hollow, not a solid-filled blob) with "IK"
+    # sitting above it in the same serif used for the other labels.
+    arrow = FancyArrowPatch((x_start, y_mid), (x_end, y_mid),
+                             transform=fig.transFigure,
+                             arrowstyle="-|>", mutation_scale=32,
+                             lw=3.2, color="#333333", zorder=10)
+    fig.add_artist(arrow)
+    fig.text((x_start + x_end) / 2.0, y_mid - 0.05, "IK", fontsize=17,
+             color="#333333", ha="center", va="bottom", zorder=11,
+             family=LABEL_FONT, fontweight="bold")
+
+    # (a)/(b)/(c) under each column.
+    col_letters = "ab"
+    bottoms = [axes[1, c].get_position().y0 for c in range(2)]
+    label_y = min(bottoms) + 0.05
+    for c, letter in enumerate(col_letters):
+        top_box = axes[0, c].get_position()
+        x_center = (top_box.x0 + top_box.x1) / 2.0
+        fig.text(x_center, label_y, f"({letter})", fontsize=16,
+                  color="#333333", ha="center", va="top", zorder=10,
+                  family=LABEL_FONT)
+
+    _save_fig(fig, "robot_arm_fig_composite_start_eefs_all", skip_tight_layout=True)
+
+
+def build_side_by_side_svg(
+        path_a="robot_arm_fig_composite_start_eefs.png",
+        path_b="robot_arm_fig_composite_start_eefs_all.png",
+        out_path="robot_arm_fig_composite_side_by_side.svg",
+        label_a="Case 1: SE(3) samples, collision in P-space",
+        label_b="Case 2: SE(3) -> IK -> Q-space, collision found",
+        color_a="#2a6f97", color_b="#bb4d00",
+        pad=5, gap=10, title_h=40, target_h=520):
+    """Places the two already-rendered composite PNGs side by side inside
+    their own bordered, labeled box (one per "case"), as a single SVG --
+    a lightweight way to visually distinguish the two without redoing
+    either composite as vector subplots."""
+    import base64
+    from PIL import Image
+
+    im_a = Image.open(path_a)
+    im_b = Image.open(path_b)
+    wa, ha = im_a.size
+    wb, hb = im_b.size
+    scale_a = target_h / ha
+    scale_b = target_h / hb
+    wa_s, ha_s = wa * scale_a, ha * scale_a
+    wb_s, hb_s = wb * scale_b, hb * scale_b
+
+    box_a_w = wa_s + 2 * pad
+    box_b_w = wb_s + 2 * pad
+    box_h = max(ha_s, hb_s) + 2 * pad + title_h
+
+    total_w = box_a_w + gap + box_b_w + 2 * pad
+    total_h = box_h + 2 * pad
+
+    def _b64(path):
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
+
+    b64_a, b64_b = _b64(path_a), _b64(path_b)
+
+    x_a = pad
+    x_b = x_a + box_a_w + gap
+    y_box = pad
+
+    img_a_x = x_a + pad
+    img_a_y = y_box + title_h + pad + (max(ha_s, hb_s) - ha_s) / 2
+    img_b_x = x_b + pad
+    img_b_y = y_box + title_h + pad + (max(ha_s, hb_s) - hb_s) / 2
+
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{total_w:.1f}" height="{total_h:.1f}" viewBox="0 0 {total_w:.1f} {total_h:.1f}">
+  <rect width="100%" height="100%" fill="white"/>
+  <rect x="{x_a:.1f}" y="{y_box:.1f}" width="{box_a_w:.1f}" height="{box_h:.1f}" rx="14" ry="14" fill="none" stroke="{color_a}" stroke-width="3"/>
+  <text x="{x_a + box_a_w / 2:.1f}" y="{y_box + title_h / 2 + 6:.1f}" font-size="20" font-family="sans-serif" fill="{color_a}" text-anchor="middle" font-weight="600">{label_a}</text>
+  <image x="{img_a_x:.1f}" y="{img_a_y:.1f}" width="{wa_s:.1f}" height="{ha_s:.1f}" xlink:href="data:image/png;base64,{b64_a}" href="data:image/png;base64,{b64_a}"/>
+
+  <rect x="{x_b:.1f}" y="{y_box:.1f}" width="{box_b_w:.1f}" height="{box_h:.1f}" rx="14" ry="14" fill="none" stroke="{color_b}" stroke-width="3"/>
+  <text x="{x_b + box_b_w / 2:.1f}" y="{y_box + title_h / 2 + 6:.1f}" font-size="20" font-family="sans-serif" fill="{color_b}" text-anchor="middle" font-weight="600">{label_b}</text>
+  <image x="{img_b_x:.1f}" y="{img_b_y:.1f}" width="{wb_s:.1f}" height="{hb_s:.1f}" xlink:href="data:image/png;base64,{b64_b}" href="data:image/png;base64,{b64_b}"/>
+</svg>'''
+    with open(out_path, "w") as f:
+        f.write(svg)
+    print(f"Saved {out_path}")
 
 
 if __name__ == "__main__":
     draw_composite_start_and_eefs()
     draw_composite_start_eefs_all_no_plane_obstacle()
+    build_side_by_side_svg()
