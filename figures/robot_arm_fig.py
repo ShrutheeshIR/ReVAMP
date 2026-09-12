@@ -551,8 +551,25 @@ def draw_example_obstacles(ax, arm_idx=2, link_idx=1, t=0.4, side_x=1.9,
 # example figure: four arm poses side by side.
 # Palette: ColorBrewer "Dark2" -- the same 4 hues as before but back to
 # full saturation (Set2's pastel version read as too washed-out/muted).
+# Kept around (unused internally below) only because methodology_figure.py
+# imports it for its own, unrelated qualitative-rainbow figure.
 # ----------------------------------------------------------------------
 PALETTE = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"]
+
+# One hue, four shades (light -> dark = start -> goal), for the
+# composite start/eefs figures' arms and matching SE(3)/Q sample dots --
+# a single-color gradient instead of a qualitative rainbow reads as "one
+# arm progressing through time" rather than "four unrelated arms", and
+# blue holds up as the clearest complement against the obstacles' warm
+# red (sampled from matplotlib's "Blues" colormap at t = 0.4/0.57/0.75/0.92,
+# staying clear of both the near-white and near-black ends).
+ARM_PALETTE = ["#93c4de", "#539dcc", "#2171b5", "#084489"]
+
+# The start point's own color (ARM_PALETTE[0]) is too light to read as
+# text on white -- its "p_s"/"q_s" label uses this darker stand-in
+# instead, while the goal label keeps using ARM_PALETTE[-1] directly
+# (already dark enough on its own).
+START_LABEL_COLOR = ARM_PALETTE[2]
 
 # Both obstacles share one pale, dusty red -- deliberately much lighter
 # than the collision-highlight ring's bright "#e63946" (draw_arm's
@@ -668,7 +685,7 @@ def draw_all_content(ax, include_plane_obstacle=True,
         obstacles.append((plane_obs, 0.18))
 
     eef_points = []
-    for color, angles, lengths in zip(PALETTE, ARM_POSES, ARM_LENGTHS):
+    for color, angles, lengths in zip(ARM_PALETTE, ARM_POSES, ARM_LENGTHS):
         pts, heading = forward_kinematics(base, angles, lengths)
         hit = arm_obstacle_collision(pts, obstacles)
         pts, heading = draw_arm(ax, base, angles, lengths, color,
@@ -696,7 +713,7 @@ def draw_start_config_end_only_content(ax, plane_obstacle_y_offset=0.0):
     base = _draw_shared_base_and_plane(ax)
 
     eef_points = []
-    for arm_idx, (color, angles, lengths) in enumerate(zip(PALETTE, ARM_POSES, ARM_LENGTHS)):
+    for arm_idx, (color, angles, lengths) in enumerate(zip(ARM_PALETTE, ARM_POSES, ARM_LENGTHS)):
         # Every pose's eef point feeds the interpolation line, even the
         # two not actually drawn in this view.
         all_pts, all_heading = forward_kinematics(base, angles, lengths)
@@ -705,7 +722,7 @@ def draw_start_config_end_only_content(ax, plane_obstacle_y_offset=0.0):
         if arm_idx == 0:
             draw_gripper_only = False
             alpha_arm_body = 0.3
-        elif arm_idx == len(PALETTE) - 1:
+        elif arm_idx == len(ARM_PALETTE) - 1:
             draw_gripper_only = True
         else:
             continue
@@ -733,7 +750,7 @@ def draw_eefs_only_content(ax, plane_obstacle_y_offset=0.0):
     obstacles = [(link_obs, 0.18), (plane_obs, 0.18)]
 
     eef_points = []
-    for arm_idx, (color, angles, lengths) in enumerate(zip(PALETTE, ARM_POSES, ARM_LENGTHS)):
+    for arm_idx, (color, angles, lengths) in enumerate(zip(ARM_PALETTE, ARM_POSES, ARM_LENGTHS)):
         if arm_idx == 0:
             draw_gripper_only = False
             alpha_arm_body = 0.3
@@ -764,14 +781,41 @@ def draw_eefs_only_content(ax, plane_obstacle_y_offset=0.0):
 def _save_fig(fig, name, skip_tight_layout=False, crop=True, **tight_layout_kwargs):
     if not skip_tight_layout:
         fig.tight_layout(**tight_layout_kwargs)
-    # bbox_inches="tight" crops any leftover blank canvas around the
-    # already-laid-out content -- it only trims the outer margin, it
-    # doesn't touch the internal spacing set up above.
     save_kwargs = dict(facecolor="white")
-    if crop:
-        save_kwargs.update(bbox_inches="tight", pad_inches=0.02)
-    fig.savefig(f"{name}.png", dpi=300, **save_kwargs)
-    fig.savefig(f"{name}.svg", **save_kwargs)
+    if not crop:
+        fig.savefig(f"{name}.png", dpi=300, **save_kwargs)
+        fig.savefig(f"{name}.svg", **save_kwargs)
+        print(f"Saved {name}.png / {name}.svg")
+        return
+
+    # matplotlib's own bbox_inches="tight" still leaves a visible margin
+    # on figures like these (an Axes with axis('off') can still count its
+    # full allocated box -- not just its actual ink -- toward the "tight"
+    # bbox), so crop by hand instead: render once, uncropped, measure the
+    # real ink bounds in pixels, then re-save both formats against an
+    # explicit inches bbox built from that measurement.
+    import io
+    from PIL import Image
+    from matplotlib.transforms import Bbox
+
+    probe_dpi = 150
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=probe_dpi, facecolor="white")
+    buf.seek(0)
+    arr = np.array(Image.open(buf).convert("RGB"))
+    ys, xs = np.where(np.any(arr != 255, axis=2))
+
+    pad_in = 0.04
+    fig_w, fig_h = fig.get_size_inches()
+    left = max(xs.min() / probe_dpi - pad_in, 0.0)
+    right = min(xs.max() / probe_dpi + pad_in, fig_w)
+    # Pixel rows run top-to-bottom; figure-inch y runs bottom-to-top.
+    top = min(fig_h - ys.min() / probe_dpi + pad_in, fig_h)
+    bottom = max(fig_h - ys.max() / probe_dpi - pad_in, 0.0)
+    bbox = Bbox.from_extents(left, bottom, right, top)
+
+    fig.savefig(f"{name}.png", dpi=300, bbox_inches=bbox, **save_kwargs)
+    fig.savefig(f"{name}.svg", bbox_inches=bbox, **save_kwargs)
     print(f"Saved {name}.png / {name}.svg")
 
 
@@ -826,23 +870,52 @@ def rotate_points(points, angle_deg, pivot):
     return rotated
 
 
+def draw_endpoint_labels(ax, start, goal, start_label, start_color,
+                          goal_label, goal_color, offset=0.4, side_offset=0.12,
+                          fontsize=13):
+    """Labels the first/last point of a sampled path -- placed just past
+    each endpoint, continuing along the line's own start->goal direction
+    (nudged a little to the side too) so the text sits in open space
+    beyond the path rather than overlapping the dot, the dashed line, or
+    whatever obstacle happens to be nearby. Returns the two label
+    positions so callers can fold them into their own autoscale bounds."""
+    start = np.asarray(start, dtype=float)
+    goal = np.asarray(goal, dtype=float)
+    direction = goal - start
+    norm = np.linalg.norm(direction)
+    unit = direction / norm if norm > 1e-9 else np.array([1.0, 0.0])
+    perp = np.array([-unit[1], unit[0]])
+    start_pos = start - unit * offset + perp * side_offset
+    goal_pos = goal + unit * offset + perp * side_offset
+    ax.text(*start_pos, start_label, fontsize=fontsize, color=start_color,
+            ha="center", va="center", family=LABEL_FONT, zorder=6)
+    ax.text(*goal_pos, goal_label, fontsize=fontsize, color=goal_color,
+            ha="center", va="center", family=LABEL_FONT, zorder=6)
+    return start_pos, goal_pos
+
+
 LABEL_FONT = "serif"  # matches a paper's body text far better than the
                        # default sans-serif for the SE(3)/Q/(a)(b)(c)/IK
                        # annotation text sprinkled through these figures.
 
 
-def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.0,
-                         color="#333333", lw=2., label="SE(3)",
+def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.0, length_x=None,
+                         length_y=None, color="#333333", lw=2., label="SE(3)",
                          fontsize=15):
     """Small corner "L" axis glyph (two arrows from a fixed origin),
     labeled right at the origin corner -- stands in for coordinate axes
     on the abstract SE(3) plot without the clutter of full spanning
-    tick-labeled axes."""
+    tick-labeled axes. `length_x`/`length_y` (falling back to `length`)
+    let the two arrows reach different distances, so callers can size
+    them to actually span their panel's plotted content instead of a
+    fixed guess that may fall short of it."""
     ox, oy = origin
-    ax.annotate("", xy=(ox + length, oy), xytext=(ox, oy),
+    length_x = length if length_x is None else length_x
+    length_y = length if length_y is None else length_y
+    ax.annotate("", xy=(ox + length_x, oy), xytext=(ox, oy),
                 arrowprops=dict(arrowstyle="-|>", color=color, lw=lw,
                                  mutation_scale=12), zorder=5)
-    ax.annotate("", xy=(ox, oy + length), xytext=(ox, oy),
+    ax.annotate("", xy=(ox, oy + length_y), xytext=(ox, oy),
                 arrowprops=dict(arrowstyle="-|>", color=color, lw=lw,
                                  mutation_scale=12), zorder=5)
     if label:
@@ -850,9 +923,72 @@ def draw_axis_indicator(ax, origin=(-2.3, +0.9), length=2.0,
                  va="top", ha="right", zorder=5, family=LABEL_FONT)
 
 
+def draw_aligned_axis_indicators(fig, panels, margin=0.2, x_inset=0.14,
+                                  y_gap=0.02, origin_fig_y=None):
+    """Draws each panel's axis indicator with its origin pinned to one
+    shared figure-fraction height instead of each panel picking its own
+    independently -- without this, two same-row panels with different
+    data extents (e.g. SE(3) vs Q, once the Q panel gained the manifold
+    band) end up with their horizontal arrows sitting at visibly
+    different heights, reading as an unmatched pair.
+
+    `panels` is a list of (ax, label). Each panel's arrows are sized off
+    its own *final* xlim/ylim (ax.get_xlim()/get_ylim()), so call this
+    after any post-hoc ylim trimming and after fig.canvas.draw() -- using
+    the bounds a content-drawer saw *before* such trimming (as an earlier
+    version of this function did) sizes the vertical arrow to a top that
+    may no longer be inside the final ylim, which silently hides the
+    whole arrow (matplotlib annotate() drops it entirely, not just
+    clips it, once its tip falls outside the axes' view limits).
+
+    Pass `origin_fig_y` explicitly when these panels' row overlaps
+    (negative hspace) with a *later-drawn* row: that other row's Axes
+    then paints over the overlap zone, so an origin computed from these
+    panels' own (deep-reaching) bbox.y0 can land underneath it, invisibly
+    -- the caller should instead pass a height derived from the occluding
+    row's own edge. Left as None to fall back to these panels' own
+    bboxes, for the (default) case where nothing later overlaps them."""
+    bboxes = [ax.get_position() for ax, _ in panels]
+    if origin_fig_y is None:
+        origin_fig_y = max(b.y0 for b in bboxes) + y_gap
+    for (ax, label), bbox in zip(panels, bboxes):
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        frac = (origin_fig_y - bbox.y0) / bbox.height
+        origin_y = ylim[0] + frac * (ylim[1] - ylim[0])
+        origin_x = xlim[0] + x_inset
+        length_x = xlim[1] - origin_x - margin
+        length_y = ylim[1] - origin_y - margin
+        draw_axis_indicator(ax, origin=(origin_x, origin_y),
+                             length_x=length_x, length_y=length_y, label=label)
+
+
+def draw_full_span_axis_indicator(ax, xs_all, ys_all, pad, label,
+                                   arrow_margin=0.55):
+    """Sizes draw_axis_indicator's two arrows to actually reach the far
+    edge of this panel's own plotted content (xs_all/ys_all, the same
+    point lists used to set its xlim/ylim) instead of a fixed guessed
+    length -- so the drawn axes never fall short of, or wildly overshoot,
+    what's actually on the plot. Shared by the SE(3) and Q panels so the
+    two use one consistent sizing rule rather than each picking its own.
+
+    arrow_margin defaults comfortably larger than the 0.35 the caller
+    trims off the top of ylim *after* this runs (see the "top -= 0.35"
+    step in draw_composite_start_eefs_all_no_plane_obstacle): matplotlib's
+    annotate() hides an arrow entirely, not just clips it, once its tip
+    falls outside the axes' view limits -- so the vertical arrow needs
+    its tip to stay inside the *final* ylim, not just the one in effect
+    right now."""
+    origin = (min(xs_all) - pad + 0.25, min(ys_all) - pad + 0.1)
+    length_x = (max(xs_all) + pad) - origin[0] - arrow_margin
+    length_y = (max(ys_all) + pad) - origin[1] - arrow_margin
+    draw_axis_indicator(ax, origin=origin, length_x=length_x,
+                         length_y=length_y, label=label)
+
+
 def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
                       obstacle_colors=None, obstacle_hatches=None,
-                      collision_index=None):
+                      collision_index=None, draw_axes=True):
     """Bare x-y plot of the same task-space points/obstacles shown in the
     robot render alongside it, labeled generically as "SE(3)" rather than
     with literal x/y units -- collapsing the full linkage down to just its
@@ -862,6 +998,12 @@ def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
     a single straight line -- the naive start->goal path.
     show_all_samples=True: all 4 sampled poses along that path, joined by
     a dashed line, one dot per sample (matching PALETTE).
+
+    draw_axes=False skips drawing this panel's own axis indicator and
+    instead returns (xs_all, ys_all, pad) -- used when a caller (e.g. a
+    composite figure with a same-row sibling panel) wants to align both
+    panels' indicators to one common baseline instead of each picking its
+    own independently.
     """
     ax.set_facecolor("white")
     obstacle_colors = obstacle_colors or OBSTACLE_COLORS
@@ -876,7 +1018,7 @@ def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
         xs = [p[0] for p in eef_points]
         ys = [p[1] for p in eef_points]
         ax.plot(xs, ys, color="#555555", lw=1.6, dashes=(6, 3), zorder=1)
-        for color, p in zip(PALETTE, eef_points):
+        for color, p in zip(ARM_PALETTE, eef_points):
             ax.scatter([p[0]], [p[1]], s=120, color=color, zorder=3,
                        edgecolor="white", linewidth=1.3)
         if collision_index is not None:
@@ -886,16 +1028,22 @@ def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
         start, goal = eef_points[0], eef_points[-1]
         ax.plot([start[0], goal[0]], [start[1], goal[1]], color="#555555",
                 lw=1.8, zorder=1)
-        ax.scatter([start[0]], [start[1]], s=140, color=PALETTE[0], zorder=3,
+        ax.scatter([start[0]], [start[1]], s=140, color=ARM_PALETTE[0], zorder=3,
                    edgecolor="white", linewidth=1.4)
-        ax.scatter([goal[0]], [goal[1]], s=140, color=PALETTE[-1], zorder=3,
+        ax.scatter([goal[0]], [goal[1]], s=140, color=ARM_PALETTE[-1], zorder=3,
                    edgecolor="white", linewidth=1.4)
+
+    label_start, label_goal = draw_endpoint_labels(
+        ax, eef_points[0], eef_points[-1], r"$p_s$", START_LABEL_COLOR,
+        r"$p_{\mathrm{target}}$", ARM_PALETTE[-1])
 
     # Autoscale to the (possibly rotated) data rather than reusing the
     # physical figure's fixed limits, which no longer bound a tilted line.
-    pad = 0.5
-    xs_all = [p[0] for p in eef_points] + [c[0] for c, _ in obstacles]
-    ys_all = [p[1] for p in eef_points] + [c[1] for c, _ in obstacles]
+    pad = 0.32
+    xs_all = ([p[0] for p in eef_points] + [c[0] for c, _ in obstacles] +
+              [label_start[0], label_goal[0]])
+    ys_all = ([p[1] for p in eef_points] + [c[1] for c, _ in obstacles] +
+              [label_start[1], label_goal[1]])
     ax.set_xlim(min(xs_all) - pad, max(xs_all) + pad)
     ax.set_ylim(min(ys_all) - pad - 0.9, max(ys_all) + pad)
     ax.set_aspect("equal")
@@ -903,7 +1051,9 @@ def draw_se3_content(ax, eef_points, obstacles, show_all_samples=True,
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
-    draw_axis_indicator(ax, origin=(min(xs_all) - pad + 0.25, min(ys_all) - pad + 0.1))
+    if not draw_axes:
+        return xs_all, ys_all, pad
+    draw_full_span_axis_indicator(ax, xs_all, ys_all, pad, label="SE(3)")
 
 
 def catmull_rom(points, n_per_seg=30):
@@ -989,10 +1139,111 @@ def bend_path(points, amount=0.6, cycles=1.0):
     return [tuple(p) for p in bent]
 
 
+def offset_curve(curve, width):
+    """Two parallel curves, each `width` away from `curve` along its local
+    normal (finite-difference tangent at each sample) -- the pair of edges
+    that bound a ribbon following the curve, used below to draw the
+    constraint manifold as a band around the actual interpolated path.
+    `width` may be a scalar (constant-width ribbon) or a per-point array
+    (an irregular one, thick in some places and thin in others)."""
+    curve = np.asarray(curve, dtype=float)
+    n = len(curve)
+    width = np.broadcast_to(np.asarray(width, dtype=float), (n,))
+    normals = np.zeros_like(curve)
+    for i in range(n):
+        if i == 0:
+            tangent = curve[1] - curve[0]
+        elif i == n - 1:
+            tangent = curve[-1] - curve[-2]
+        else:
+            tangent = curve[i + 1] - curve[i - 1]
+        norm = np.linalg.norm(tangent)
+        normals[i] = np.array([0.0, 1.0]) if norm < 1e-9 else \
+            np.array([-tangent[1], tangent[0]]) / norm
+    return curve + normals * width[:, None], curve - normals * width[:, None]
+
+
+def manifold_width_profile(n, base, variation=0.9, harmonics=(1, 2, 3),
+                            seed=3, min_factor=0.08, max_factor=1.9):
+    """A smooth but irregular width-along-the-curve profile -- a few
+    random-phase sine harmonics summed together (same trick as
+    blob_points' organic outline), clipped so the ribbon never pinches
+    to zero or balloons without bound. Deterministic per `seed` so the
+    same manifold renders identically across runs."""
+    rng = np.random.default_rng(seed)
+    phases = rng.uniform(0, 2 * np.pi, size=len(harmonics))
+    t = np.linspace(0.0, 1.0, n)
+    factor = np.ones(n)
+    for k, phi in zip(harmonics, phases):
+        factor = factor + (variation / len(harmonics)) * np.cos(2 * np.pi * k * t + phi)
+    factor = np.clip(factor, min_factor, max_factor)
+    return base * factor
+
+
+def extend_curve(curve, amount):
+    """`curve` with two extra points tacked onto each end, continuing
+    straight out along the local tangent -- so a ribbon drawn around it
+    overshoots past the first/last sample instead of stopping exactly on
+    them, the way the manifold plainly continues past just the samples
+    that happen to have been drawn from it."""
+    curve = np.asarray(curve, dtype=float)
+    start_dir = curve[0] - curve[1]
+    start_dir = start_dir / np.linalg.norm(start_dir)
+    end_dir = curve[-1] - curve[-2]
+    end_dir = end_dir / np.linalg.norm(end_dir)
+    new_start = curve[0] + start_dir * amount
+    new_end = curve[-1] + end_dir * amount
+    return np.vstack([new_start, curve, new_end])
+
+
+def draw_constraint_manifold(ax, curve, half_width=0.5, color="#3a9d5d",
+                              fill_alpha=0.16, edge_alpha=0.55, lw=1.3,
+                              label=r"$\mathcal{M}$",
+                              label_color="#1f6b3a", fontsize=14, zorder=0,
+                              seed=3, overshoot=0.4):
+    """The (lower-dimensional) manifold of configurations satisfying the
+    task constraint -- here, "gripper stays on the plane" -- rendered as a
+    translucent, irregularly-widened band that the actual sampled path
+    threads through, rather than a single line or a constant-width tube:
+    every point *inside* the band is still a valid, constraint-satisfying
+    configuration, and a C-obstacle blob overlapping it (not just the
+    drawn path) is what a planner restricted to this manifold actually
+    has to route around. The varying width is cosmetic (this 2D stand-in
+    has no literal extra dimension to measure), signaling "this manifold's
+    breadth isn't uniform" rather than any computed quantity. `overshoot`
+    extends the band past the first/last sample on each end (0 to draw it
+    flush with the path instead)."""
+    curve = np.asarray(curve, dtype=float)
+    if overshoot > 0:
+        curve = extend_curve(curve, overshoot)
+    widths = manifold_width_profile(len(curve), base=half_width, seed=seed)
+    upper, lower = offset_curve(curve, widths)
+    ring = np.vstack([upper, lower[::-1]])
+    ax.add_patch(Polygon(ring, closed=True, facecolor=color, alpha=fill_alpha,
+                          edgecolor="none", zorder=zorder))
+    for edge in (upper, lower):
+        ax.plot(edge[:, 0], edge[:, 1], color=color, lw=lw,
+                alpha=edge_alpha, dashes=(5, 3), zorder=zorder + 0.1)
+
+    if label:
+        # Whichever edge point reaches farthest right, offset a little
+        # further out -- puts the label to the side of the band in open
+        # space, instead of above it or near the path/IK-arrow clutter.
+        both_edges = np.vstack([upper, lower])
+        idx = np.argmax(both_edges[:, 0])
+        anchor = both_edges[idx]
+        label_pos = anchor + np.array([0.3, 0.0])
+        ax.text(*label_pos, label, fontsize=fontsize, color=label_color,
+                ha="left", va="center", zorder=zorder + 0.2,
+                family=LABEL_FONT, style="italic")
+    return upper, lower
+
+
 def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
                          bend_amount=0.7, collision_index=None,
                          colliding_obstacle_index=None, obstacle_colors=None,
-                         obstacle_hatches=None):
+                         obstacle_hatches=None, show_manifold=True,
+                         manifold_half_width=0.25, draw_axes=True):
     """The q-space counterpart of draw_se3_content()'s "all samples" panel:
     a smooth curved interpolated path (catmull_rom, bent off the straight
     line via bend_path) through the same 4 sampled configurations,
@@ -1033,24 +1284,38 @@ def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
     
     # print(centers, radii)
     centers[1] = [-1.3075138205,  3.016659015]
+
+    curve = catmull_rom(bent_points, n_per_seg=40)
+    manifold_edges = None
+    if show_manifold:
+        manifold_edges = draw_constraint_manifold(
+            ax, curve, half_width=manifold_half_width)
+
     for i, (center, radius) in enumerate(zip(centers, radii)):
         draw_c_obstacle(ax, center, base_radius=radius, seed=i,
                          color=obstacle_colors[i], hatch=obstacle_hatches[i])
 
-    curve = catmull_rom(bent_points, n_per_seg=40)
     ax.plot(curve[:, 0], curve[:, 1], color=path_color, lw=2.0, zorder=1)
-    for color, p in zip(PALETTE, bent_points):
+    for color, p in zip(ARM_PALETTE, bent_points):
         ax.scatter([p[0]], [p[1]], s=120, color=color, zorder=3,
                    edgecolor="white", linewidth=1.3)
     if collision_index is not None:
         draw_highlight_circle(ax, bent_points[collision_index], radius=0.18,
                                color="#e63946", lw=2.2, zorder=4)
 
-    pad = 0.7
+    label_start, label_goal = draw_endpoint_labels(
+        ax, bent_points[0], bent_points[-1], r"$q_s$", START_LABEL_COLOR,
+        r"$q_{\mathrm{target}}$", ARM_PALETTE[-1])
+
+    pad = 0.45
     xs_all = ([p[0] for p in bent_points] + [c[0] for c in centers] +
-              list(curve[:, 0]))
+              list(curve[:, 0]) + [label_start[0], label_goal[0]])
     ys_all = ([p[1] for p in bent_points] + [c[1] for c in centers] +
-              list(curve[:, 1]))
+              list(curve[:, 1]) + [label_start[1], label_goal[1]])
+    if manifold_edges is not None:
+        for edge in manifold_edges:
+            xs_all += list(edge[:, 0])
+            ys_all += list(edge[:, 1])
     ax.set_xlim(min(xs_all) - pad, max(xs_all) + pad)
     ax.set_ylim(min(ys_all) - pad - 0.9, max(ys_all) + pad)
     ax.set_aspect("equal")
@@ -1058,8 +1323,9 @@ def draw_qspace_content(ax, eef_points, obstacles, path_color="#555555",
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
-    draw_axis_indicator(ax, origin=(min(xs_all) - pad + 0.25, min(ys_all) - pad + 0.1),
-                         label="Q")
+    if not draw_axes:
+        return xs_all, ys_all, pad
+    draw_full_span_axis_indicator(ax, xs_all, ys_all, pad, label="Q")
 
 
 def draw_composite_start_and_eefs():
@@ -1102,15 +1368,21 @@ def draw_composite_start_and_eefs():
     link_obs, plane_obs = rotate_points([link_obs, plane_obs], delta, pivot=start)
     obstacles = [(link_obs, obstacle_radius), (plane_obs, obstacle_radius)]
 
-    draw_se3_content(axes[1, 0], eef_points, obstacles, show_all_samples=False)
-    draw_se3_content(axes[1, 1], eef_points, obstacles, show_all_samples=True)
+    draw_se3_content(axes[1, 0], eef_points, obstacles,
+                      show_all_samples=False, draw_axes=False)
+    draw_se3_content(axes[1, 1], eef_points, obstacles,
+                      show_all_samples=True, draw_axes=False)
     for ax in axes[1, :]:
         bottom, top = ax.get_ylim()
-        ax.set_ylim(bottom, top - 0.35)
+        ax.set_ylim(bottom, top - 0.1)
 
     fig.subplots_adjust(left=0.02, right=0.99, top=0.97, bottom=0.09,
                          wspace=0.204, hspace=0.03)
     fig.canvas.draw()
+    draw_aligned_axis_indicators(fig, [
+        (axes[1, 0], "SE(3)"),
+        (axes[1, 1], "SE(3)"),
+    ])
 
     col_letters = "ab"
     bottoms = [axes[1, c].get_position().y0 for c in range(2)]
@@ -1202,16 +1474,18 @@ def draw_composite_start_eefs_all_no_plane_obstacle():
     # No collision_index here: this SE(3) panel is just the raw samples --
     # at this stage nothing has checked them against obstacles yet, so it
     # shouldn't presuppose which one (if any) turns out to collide.
-    draw_se3_content(axes[0, 0], eef_points, obstacles, show_all_samples=True)
+    draw_se3_content(axes[0, 0], eef_points, obstacles,
+                      show_all_samples=True, draw_axes=False)
     draw_qspace_content(axes[0, 1], eef_points, obstacles,
                          collision_index=collision_index,
-                         colliding_obstacle_index=colliding_obstacle_index)
+                         colliding_obstacle_index=colliding_obstacle_index,
+                         draw_axes=False)
     # Trim the blank margin above the topmost point in each top-row
     # panel -- with anchor="S" this dead space was sitting right at the
     # seam with row 1, same issue as the row-1 trim above.
     for ax in axes[0, :]:
         bottom, top = ax.get_ylim()
-        ax.set_ylim(bottom, top - 0.35)
+        ax.set_ylim(bottom, top - 0.1)
 
     # Exact margins (not tight_layout, which would recompute its own and
     # drift away from the size match above) -- solved so column width
@@ -1225,6 +1499,15 @@ def draw_composite_start_eefs_all_no_plane_obstacle():
     fig.canvas.draw()
     box_eefs = axes[1, 0].get_position()
     box_all = axes[1, 1].get_position()
+    # Row 1 (robot renders) is created *after* row 0 (SE(3)/Q) and their
+    # cells deliberately overlap (negative hspace), so row 1 paints over
+    # that overlap zone -- the indicators' shared origin has to clear
+    # row 1's own top edge, not just row 0's (much lower, since its box
+    # reaches into the overlap) bottom.
+    draw_aligned_axis_indicators(fig, [
+        (axes[0, 0], "SE(3)"),
+        (axes[0, 1], "Q"),
+    ], origin_fig_y=max(box_eefs.y1, box_all.y1) + 0.025)
     # x from the plot row (row 0): the robot-render row's equal-aspect
     # boxes overlap in x by design (negative wspace, narrower actual
     # content than their nominal cells), so box_eefs.x1/box_all.x0 can
