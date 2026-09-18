@@ -45,3 +45,4 @@ __pycache__/
 
 # Nested clone of ShrutheeshIR/CRAMP (planner meta-repo with its own submodules)
 /codebase/
+/out/
