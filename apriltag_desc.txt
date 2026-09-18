@@ -1,0 +1,2 @@
+block (center of the apriltag, i.e. top of the block) 23cm in front 19cm above the panda base.
+size of the block that has the apriltag - 10cm x 10cm

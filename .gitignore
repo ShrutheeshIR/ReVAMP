@@ -1,0 +1,47 @@
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+
+/root.pdf
+
+# Biber/BibTeX
+*.bbl
+*.blg
+
+# Editor backups
+*~
+*.swp
+*.swo
+*.bak
+
+# macOS
+.DS_Store
+
+# Overleaf
+*.synctex(busy)
+
+/svg-inkscape
+
+# Video pipeline
+/venv/
+/scratch/
+*.MOV
+*.mp4
+__pycache__/
+
+# Nested clone of ShrutheeshIR/CRAMP (planner meta-repo with its own submodules)
+/codebase/

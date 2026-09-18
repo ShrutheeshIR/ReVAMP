@@ -1,0 +1,17 @@
+{
+  "creation_epoch": 1789684963.0,
+  "delta_s": 0.0,
+  "delta_search_window_s": 3.0,
+  "duration_s": 386.943333,
+  "fps": 59.97234749124553,
+  "joint_states_video_window": [
+    -0.260495662689209,
+    389.32198214530945
+  ],
+  "note": "delta_s=0 is the wall-clock coarse estimate; calibrate.py refines it.",
+  "queries_video_window": [
+    -0.23905467987060547,
+    388.55208373069763
+  ],
+  "video_start_epoch": 1789684963.0
+}
