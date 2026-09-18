@@ -181,10 +181,11 @@ class Overlay:
         for p in uv:
             cv2.circle(img, tuple(p), 9, (0, 255, 0), 2, cv2.LINE_AA)
 
-    def annotate(self, img, t_video, skeleton=False):
+    def annotate(self, img, t_video, skeleton=False, obstacle_rings=True):
         self.draw_trace(img, t_video)
         self.draw_goal(img, t_video)
-        self.draw_obstacles(img, t_video)
+        if obstacle_rings:
+            self.draw_obstacles(img, t_video)
         self.draw_panel(img, t_video)
         if skeleton:
             self.draw_skeleton(img, t_video)
@@ -214,7 +215,11 @@ def montage(ov, times, out_path, skeleton=True):
     print(out_path)
 
 
-def render_segment(ov, t0, t1, out_path, fps=None):
+def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
+                   ghost_alpha=0.45):
+    """ghost: optional sim_ghost.GhostRenderer composited (with interpolated
+    obstacle bubbles, ReVAMP-blue tint) under the annotations; ring flashes
+    are suppressed since the bubbles already show the obstacles."""
     fps = fps or common.VIDEO_FPS
     w, h = common.VIDEO_WH
     dec = subprocess.Popen(
@@ -235,7 +240,11 @@ def render_segment(ov, t0, t1, out_path, fps=None):
         if len(buf) < nbytes:
             break
         img = np.frombuffer(buf, np.uint8).reshape(h, w, 3).copy()
-        ov.annotate(img, t0 + n / fps)
+        t = t0 + n / fps
+        if ghost is not None:
+            img = ghost.composite(img, t, ghost_alpha, obstacles=True,
+                                  tint=(203, 160, 141))
+        ov.annotate(img, t, obstacle_rings=ghost is None)
         enc.stdin.write(img.tobytes())
         n += 1
         if n % 300 == 0:
@@ -254,6 +263,10 @@ def main():
     ap.add_argument("--frames", type=float, nargs="+")
     ap.add_argument("--segment", type=float, nargs=2)
     ap.add_argument("--no-skeleton", action="store_true")
+    ap.add_argument("--ghost", action="store_true",
+                    help="composite the sim ghost + obstacle bubbles "
+                         "under the annotations")
+    ap.add_argument("--ghost-alpha", type=float, default=0.45)
     args = ap.parse_args()
 
     ov = Overlay()
@@ -271,8 +284,14 @@ def main():
             cv2.imwrite(p, cv2.resize(img, (1920, 1080)))
             print(p)
     if args.segment:
+        ghost = None
+        if args.ghost:
+            from sim_ghost import GhostRenderer
+            ghost = GhostRenderer(with_obstacle_slots=9)
+        name = "highlight_ghost_4k.mp4" if args.ghost else "highlight_4k.mp4"
         render_segment(ov, args.segment[0], args.segment[1],
-                       os.path.join(common.REPO, "out", "highlight_4k.mp4"))
+                       os.path.join(common.REPO, "out", name),
+                       ghost=ghost, ghost_alpha=args.ghost_alpha)
 
 
 if __name__ == "__main__":
