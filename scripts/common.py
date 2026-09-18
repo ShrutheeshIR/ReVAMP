@@ -19,6 +19,9 @@ JOINT_CSV = os.path.join(LOG_DIR, "joint_states.csv")
 QUERIES_JSONL = os.path.join(LOG_DIR, "planning_queries.jsonl")
 CALIB_DIR = os.path.join(REPO, "calib")
 SCRATCH = os.path.join(REPO, "scratch")
+# Offline replay of the planner (see maze_expt_logs/planned_traj_readme):
+# trajectories/NNN.npy is the (n,7) joint-space plan for query row NNN.
+TRAJ_DIR = os.path.join(REPO, "maze_expt_logs", "trajectories")
 URDF = os.path.join(
     REPO, "codebase", "fr3_trajopt", "models", "fr3_marker",
     "fr3_expo_spherized.urdf")
@@ -58,6 +61,17 @@ def eef_matrix(js):
 def load_queries():
     with open(QUERIES_JSONL) as f:
         return [json.loads(line) for line in f]
+
+
+def trajectory_path(i):
+    return os.path.join(TRAJ_DIR, f"{i:03d}.npy")
+
+
+def load_trajectory(i):
+    """(n,7) planned joint-space waypoints for query row i, or None if the
+    row didn't solve (only solved rows have a replayed trajectory file)."""
+    p = trajectory_path(i)
+    return np.load(p) if os.path.exists(p) else None
 
 
 def read_json(path):

@@ -73,6 +73,12 @@ STAGES = [
      5_000_000,
      {"deps": [cj("camera_deep.json"), common.QUERIES_JSONL,
                common.URDF_GL_PATH]}),
+    ("highlight_plan",
+     os.path.join(common.REPO, "out", "highlight_plan_4k.mp4"),
+     [PY, sp("render_overlay.py"), "--segment", "225", "275", "--plan"],
+     5_000_000,
+     {"deps": [cj("camera_deep.json"), common.QUERIES_JSONL,
+               common.TRAJ_DIR]}),
 ]
 
 if __name__ == "__main__":

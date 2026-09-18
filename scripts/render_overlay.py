@@ -38,9 +38,71 @@ HIST_S = 75.0         # older than this is dropped entirely
 OBSTACLE_FLASH_S = 1.8
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
+# Live-plan overlay (maze_expt_logs trajectories): the remaining portion of
+# the active plan, ahead of the robot, dashed so it reads as intent rather
+# than executed path. Green = "path ahead is clear"; orange already means
+# obstacle/blocked and both blues belong to the executed trace.
+PLAN_COLOR = (90, 205, 60)
+PLAN_REFRESH_S = 0.1       # ~10 Hz update tick, per Tommy
+PLAN_ALPHA = 0.75
+PLAN_FLASH_S = 0.6         # full-bright right after a replan lands
+PLAN_WIDTH = 6
+PLAN_SEARCH_AHEAD = 250    # waypoints scanned per tick to advance progress
+
+
+def dashed_polyline(img, uv, color, width, dash=34, gap=22):
+    """polylines() but dashed, following the (dense) point chain in uv."""
+    if len(uv) < 2:
+        return
+    d = np.linalg.norm(np.diff(uv.astype(float), axis=0), axis=1)
+    s = np.concatenate([[0.0], np.cumsum(d)])
+    on = (s % (dash + gap)) < dash
+    start = None
+    for i, flag in enumerate(on):
+        if flag and start is None:
+            start = i
+        elif not flag and start is not None:
+            if i - start >= 1:
+                cv2.polylines(img, [uv[start:i + 1]], False, color, width,
+                              cv2.LINE_AA)
+            start = None
+    if start is not None and len(uv) - start >= 2:
+        cv2.polylines(img, [uv[start:]], False, color, width, cv2.LINE_AA)
+
+
+class PlanPaths:
+    """Marker-tip positions of every replayed planned trajectory.
+
+    Plans are (n,7) joint-space waypoint arrays; the overlay wants the same
+    physical point the executed trace uses (fr3_tip, the pen tip on the
+    maze), so each waypoint goes through FK once. ~25k FK calls total,
+    cached in scratch keyed by the trajectory directory's content.
+    """
+
+    def __init__(self, arm):
+        import glob
+        files = sorted(glob.glob(os.path.join(common.TRAJ_DIR, "*.npy")))
+        sig = np.array([os.path.getsize(f) for f in files])
+        cache = os.path.join(common.SCRATCH, "plan_tip_cache.npz")
+        self.tip = {}
+        if os.path.exists(cache):
+            z = np.load(cache)
+            if "sig" in z and np.array_equal(z["sig"], sig):
+                self.tip = {int(k[1:]): z[k] for k in z.files if k != "sig"}
+        if not self.tip:
+            print(f"FK over {len(files)} planned trajectories...")
+            for f in files:
+                i = int(os.path.basename(f)[:3])
+                q = np.load(f)
+                self.tip[i] = arm.frame_positions(TRACE_FRAME, q)
+            os.makedirs(common.SCRATCH, exist_ok=True)
+            np.savez_compressed(cache, sig=sig,
+                                **{f"r{i}": p for i, p in self.tip.items()})
+            print(f"cached -> {cache}")
+
 
 class Overlay:
-    def __init__(self):
+    def __init__(self, plan=False):
         cam = common.read_json(common.camera_path())
         self.cam = cam
         self.K = np.array([[cam["f"], 0, cam["cx"]],
@@ -60,6 +122,11 @@ class Overlay:
         self.q_t = np.array([q["t"] for q in self.queries])
         self.arm = common.ArmKinematics()
         self.qs = common.joint_matrix(js)
+        self.plans = PlanPaths(self.arm) if plan else None
+        # Sequential-render state for the live-plan overlay: the active plan
+        # row, how far along it the robot has progressed, and the projected
+        # remaining path drawn since the last 10 Hz tick.
+        self._plan_state = {"row": None, "prog": 0, "tick": None, "uv": None}
 
     # -- time mapping ------------------------------------------------------
     def log_time(self, t_video):
@@ -173,6 +240,50 @@ class Overlay:
             cv2.putText(img, text, (x, y), FONT, 2.2, color, 4, cv2.LINE_AA)
             y += 78
 
+    def active_plan_row(self, te):
+        """Latest query row at te whose plan the robot is executing: the
+        most recent SOLVED row (during a goal-blocked cluster the robot
+        keeps following the previous plan, which is what we show)."""
+        i = int(np.searchsorted(self.q_t, te)) - 1
+        while i >= 0 and i not in self.plans.tip:
+            i -= 1
+        return i if i >= 0 else None
+
+    def draw_plan(self, img, t_video):
+        te = self.log_time(t_video)
+        row = self.active_plan_row(te)
+        if row is None:
+            return
+        st = self._plan_state
+        tick = int(t_video / PLAN_REFRESH_S)
+        # Global relocalization on the first eval and on non-sequential time
+        # (stills/montage); sequential renders advance a windowed search.
+        jumped = st["tick"] is None or abs(tick - st["tick"]) > 3
+        if row != st["row"] or tick != st["tick"] or st["uv"] is None:
+            pts = self.plans.tip[row]
+            if row != st["row"]:
+                st["row"], st["prog"] = row, 0
+            cur, _ = self.tip.at(te)
+            d = np.linalg.norm(pts[:, :2] - cur[:2], axis=1)
+            if jumped:
+                # Non-sequential eval (montage/stills): relocalize globally.
+                st["prog"] = int(np.argmin(d))
+            else:
+                lo = st["prog"]
+                hi = min(len(pts), lo + PLAN_SEARCH_AHEAD)
+                st["prog"] = lo + int(np.argmin(d[lo:hi]))
+            st["tick"] = tick
+            remaining = pts[st["prog"]:]
+            st["uv"] = (self.px(remaining).astype(np.int32)
+                        if len(remaining) >= 2 else None)
+        if st["uv"] is None:
+            return
+        age = te - self.q_t[row]     # age of THIS plan, not the newest query
+        alpha = 1.0 if age < PLAN_FLASH_S else PLAN_ALPHA
+        canvas = img.copy()
+        dashed_polyline(canvas, st["uv"], PLAN_COLOR, PLAN_WIDTH)
+        cv2.addWeighted(canvas, alpha, img, 1 - alpha, 0, dst=img)
+
     def draw_skeleton(self, img, t_video):
         te = self.log_time(t_video)
         i = int(np.argmin(np.abs(self.t_log - te)))
@@ -183,6 +294,8 @@ class Overlay:
 
     def annotate(self, img, t_video, skeleton=False, obstacle_rings=True):
         self.draw_trace(img, t_video)
+        if self.plans is not None:
+            self.draw_plan(img, t_video)
         self.draw_goal(img, t_video)
         if obstacle_rings:
             self.draw_obstacles(img, t_video)
@@ -267,9 +380,12 @@ def main():
                     help="composite the sim ghost + obstacle bubbles "
                          "under the annotations")
     ap.add_argument("--ghost-alpha", type=float, default=0.45)
+    ap.add_argument("--plan", action="store_true",
+                    help="overlay the live current plan (remaining path "
+                         "ahead of the robot, ~10 Hz refresh)")
     args = ap.parse_args()
 
-    ov = Overlay()
+    ov = Overlay(plan=args.plan)
     os.makedirs(common.SCRATCH, exist_ok=True)
     if args.montage:
         times = list(np.linspace(12, 380, 12))
@@ -288,7 +404,8 @@ def main():
         if args.ghost:
             from sim_ghost import GhostRenderer
             ghost = GhostRenderer(with_obstacle_slots=9)
-        name = "highlight_ghost_4k.mp4" if args.ghost else "highlight_4k.mp4"
+        name = ("highlight" + ("_plan" if args.plan else "")
+                + ("_ghost" if args.ghost else "") + "_4k.mp4")
         render_segment(ov, args.segment[0], args.segment[1],
                        os.path.join(common.REPO, "out", name),
                        ghost=ghost, ghost_alpha=args.ghost_alpha)
