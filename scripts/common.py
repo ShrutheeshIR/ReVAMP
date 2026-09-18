@@ -66,10 +66,22 @@ def read_json(path):
 
 
 def write_json(path, obj):
+    """Atomic write: checkpointing optimizers write while renderers read."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(obj, f, indent=2, sort_keys=True)
         f.write("\n")
+    os.replace(tmp, path)
+
+
+def camera_path():
+    """Best available camera calibration, most refined first."""
+    for name in ("camera.json", "camera_deep.json", "camera_sil.json"):
+        p = os.path.join(CALIB_DIR, name)
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError("no camera calibration in calib/")
 
 
 # ---------------------------------------------------------------- Drake FK --

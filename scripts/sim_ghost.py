@@ -102,9 +102,7 @@ class GhostRenderer:
 
     @staticmethod
     def _camera_path():
-        p = os.path.join(common.CALIB_DIR, "camera.json")
-        return p if os.path.exists(p) else os.path.join(
-            common.CALIB_DIR, "camera_sil.json")
+        return common.camera_path()
 
     def q_at(self, t_video):
         te = t_video + self.v0 - self.delta

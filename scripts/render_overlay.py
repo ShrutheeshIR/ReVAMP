@@ -41,11 +41,7 @@ FONT = cv2.FONT_HERSHEY_DUPLEX
 
 class Overlay:
     def __init__(self):
-        # Final NLLS result if present, else the silhouette-contrast fit.
-        path = os.path.join(common.CALIB_DIR, "camera.json")
-        if not os.path.exists(path):
-            path = os.path.join(common.CALIB_DIR, "camera_sil.json")
-        cam = common.read_json(path)
+        cam = common.read_json(common.camera_path())
         self.cam = cam
         self.K = np.array([[cam["f"], 0, cam["cx"]],
                            [0, cam["f"], cam["cy"]], [0, 0, 1]])
