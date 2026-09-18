@@ -99,6 +99,11 @@ class GhostRenderer:
         self.delta = cam["delta_s"]
         self.queries = common.load_queries()
         self.q_t = np.array([q["t"] for q in self.queries])
+        # Obstacles were sampled when each query was SUBMITTED, i.e.
+        # external_duration_s before the logged completion time t — so the
+        # belief update (bubble teleport) lands that much before the plan.
+        self.t_belief = self.q_t - np.array(
+            [q.get("external_duration_s") or 0.0 for q in self.queries])
 
     @staticmethod
     def _camera_path():
@@ -113,39 +118,17 @@ class GhostRenderer:
         return (1 - np.clip(w, 0, 1)) * self.qs[i - 1] + np.clip(w, 0, 1) * self.qs[i]
 
     def obstacles_at(self, t_video):
-        """Sphere obstacles at a video time, interpolated between the
-        bracketing query snapshots (obstacles are only logged per replan,
-        median 2.3 s apart, so raw snapshots visibly lag the moving wand).
-        Spheres are matched greedily by nearest neighbor across snapshots."""
+        """Sphere obstacles at a video time: the planner's CURRENT belief.
+
+        Obstacles are only sampled at query submission, so the belief is a
+        step function — bubbles hold still and teleport at each new query.
+        Interpolating between snapshots was tried first and reads as laggy
+        smooth pursuit of the wand; the step-hold is what the planner
+        actually knew. Teleports land external_duration_s before the
+        query's plan appears (snapshot at submission, plan once solved)."""
         te = t_video + self.v0 - self.delta
-        i = np.searchsorted(self.q_t, te) - 1
-        if i < 0:
-            return []
-        a = self.queries[i]["spheres"]
-        if i + 1 >= len(self.queries):
-            return a
-        b = self.queries[i + 1]["spheres"]
-        w = (te - self.q_t[i]) / (self.q_t[i + 1] - self.q_t[i])
-        w = float(np.clip(w, 0.0, 1.0))
-        if not a or not b:
-            return a if w < 0.5 else b
-        pa = np.array([s["position"] for s in a])
-        pb = np.array([s["position"] for s in b])
-        used, out = set(), []
-        for k, p in enumerate(pa):
-            d = np.linalg.norm(pb - p, axis=1)
-            for j in np.argsort(d):
-                if j not in used:
-                    break
-            if d[j] < 0.35:  # same physical marker, plausibly
-                used.add(j)
-                out.append({"position": ((1 - w) * p + w * pb[j]).tolist(),
-                            "radius": a[k]["radius"]})
-            elif w < 0.5:
-                out.append(a[k])
-        if w >= 0.5:
-            out.extend(b[j] for j in range(len(b)) if j not in used)
-        return out
+        i = np.searchsorted(self.t_belief, te) - 1
+        return self.queries[i]["spheres"] if i >= 0 else []
 
     def render(self, t_video, obstacles=False):
         """RGBA sim layer (uint8, h x w x 4) at a video time."""
