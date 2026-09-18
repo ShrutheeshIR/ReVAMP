@@ -39,7 +39,11 @@ FONT = cv2.FONT_HERSHEY_DUPLEX
 
 class Overlay:
     def __init__(self):
-        cam = common.read_json(os.path.join(common.CALIB_DIR, "camera.json"))
+        # Final NLLS result if present, else the silhouette-contrast fit.
+        path = os.path.join(common.CALIB_DIR, "camera.json")
+        if not os.path.exists(path):
+            path = os.path.join(common.CALIB_DIR, "camera_sil.json")
+        cam = common.read_json(path)
         self.cam = cam
         self.K = np.array([[cam["f"], 0, cam["cx"]],
                            [0, cam["f"], cam["cy"]], [0, 0, 1]])
@@ -138,8 +142,14 @@ class Overlay:
         if q["solved"]:
             ms = q["rrtc_nanoseconds"] / 1e6
             lines.append((f"replanned in {ms:.1f} ms", WHITE))
-            lines.append((f"{q['rrtc_iterations']:,} iterations · "
-                          f"{q['num_waypoints']} waypoints", (200, 200, 200)))
+            if q["rrtc_iterations"] > 0:
+                lines.append((f"{q['rrtc_iterations']:,} iterations · "
+                              f"{q['num_waypoints']} waypoints",
+                              (200, 200, 200)))
+            else:
+                lines.append((f"direct connection · "
+                              f"{q['num_waypoints']} waypoints",
+                              (200, 200, 200)))
         else:
             lines.append(("goal blocked - replanning...", WARN_ORANGE))
         te = self.log_time(t_video)
