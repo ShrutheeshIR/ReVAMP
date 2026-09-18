@@ -1,0 +1,215 @@
+# `replay_task_space_log.py` — what it does and how to read its output
+
+This document is written for another Claude agent (or any reader) who needs
+to consume the *output* of this script without necessarily re-reading the
+source. It explains what the script does, why, and the exact schema of
+everything it writes to disk.
+
+## What this script is
+
+`replay_task_space_log.py` offline-replays a `main_realtime_continuous.py`
+run's `planning_queries.jsonl` — specifically runs that used the **task
+space / parameterized-space planner** (`main_realtime.py`'s smm/psi-branch
+approach, invoked via `plan_task_space_path` / `plan_to_goal_from_current`).
+It does NOT replay the generic-manifold "mcvamp" planner — that has its own
+sibling script, `replay_mcvamp_log.py`.
+
+The original run's log never stored the actual planned joint-space
+trajectory, only summary fields (`num_waypoints`, `solved`, timings, etc.).
+This script reconstructs the real trajectories with **no robot attached**,
+by re-running the same planning call the original run made, for every logged
+row, using each row's own recorded `q_current`, `goal_eef_pos`,
+`goal_psi_hint`, and obstacle state.
+
+It reuses `resolve_start_goal` from `main_realtime.py` unchanged, but swaps
+in a **local, fixed copy** of the planning path
+(`plan_task_space_path_checked` / `resolve_ambient_path_checked`) instead of
+`main_realtime.py`'s originals. `main_realtime.py` itself is left untouched.
+
+### The bug this script works around
+
+`main_realtime.py`'s `resolve_ambient_path()` calls `param.resolve(state)`
+per interpolated task-space waypoint and blindly trusts the `valid` flag
+that comes back. Investigation (log `logs/20260911_204005`, row 12) found
+that vamp's closed-form `resolve()` can return `valid=True` for a
+**degenerate solution** (there: `q1=q2=0.0` exactly, for 74/422 waypoints)
+that doesn't actually reach the requested task-space pose — forward
+kinematics on that `q` was off by ~1.5cm, versus ~0.1mm for correctly
+resolved waypoints.
+
+Since every waypoint on these plans is supposed to lie on the maze's fixed
+z-plane, tool-down, `resolve_ambient_path_checked` re-derives a
+self-consistency check (`_resolved_waypoint_is_valid`, mirroring
+`main_realtime.eef_pose_satisfies_constraint`) that checks BOTH:
+1. manifold membership (z-height + tool-down orientation), and
+2. that FK on the resolved `q` actually lands at the requested (x, y) —
+   not just the right z/orientation (the degenerate branch can drift close
+   enough in (x, y) — 2-4mm vs ~1e-4m for a correct solve — to slip past a
+   z/orientation-only check while still being the wrong branch).
+
+Any waypoint that fails this check is **repaired** by linearly interpolating
+its joint angles from the nearest good neighbors on either side (the true
+path is smooth in joint space, and bad stretches are narrow and flanked by
+good samples).
+
+### Reproducibility
+
+This planner resets its sampler (`sampler.reset()`) before every single
+`rrtc` call, so each row is **independently reproducible** — rows don't
+need to be replayed in order, unlike the mcvamp planner. The one thing that
+must match per row is the environment the row's `TaskSpaceInformedSampler`
+was built from (it captures the environment at construction time), so the
+script builds a fresh sampler per row from that row's own reconstructed
+environment.
+
+### Environment reconstruction
+
+Per row, the environment is rebuilt from:
+- the maze's **static cuboid geometry**, loaded from `maze_json` (default:
+  `main_realtime_continuous.MAZE_JSON`) — NOT from the log's own `"cuboids"`
+  field, which is always `[]` and meaningless (a vamp `Environment.cuboids`
+  python-binding quirk causes it to read empty even right after
+  `add_cuboid`, regardless of whether walls are actually present).
+- that row's own logged **`"spheres"`** field (OptiTrack obstacle
+  positions/radii at the time of that planning query) — NOT the live
+  `maze_cuboids.json` obstacle state, which may have since moved.
+
+## Usage
+
+```
+python replay_task_space_log.py <log_dir>
+python replay_task_space_log.py logs/20260911_201855_gs --range_=0.42 --max_iterations=100000
+```
+
+Key CLI args (all via `python-fire`):
+- `log_dir` (positional, required): path to the original run's log directory
+  (must contain `planning_queries.jsonl`).
+- `maze_json`: path to the maze cuboid geometry JSON (default: the same one
+  `main_realtime_continuous.py` uses).
+- `range_`, `max_iterations`, `max_samples`, `radius`: RRTC settings:
+  defaults match `main_realtime_continuous.py`'s own defaults.
+- `out_dir`: where to write output (default: `<log_dir>_replayed`, as a
+  sibling of `log_dir`).
+- `skip_rows`: tuple/list of row indices to skip entirely — no trajectory
+  file is written and they're excluded from all summary counts.
+
+## Output format
+
+Output goes to `<log_dir>_replayed/` (or `out_dir` if given), matching the
+original log's own directory layout (it's written by the same `RunLogger`
+class from `run_logger.py`):
+
+```
+<out_dir>/
+  planning_queries.jsonl     # this replay run's own planning log
+  joint_states.csv           # header row only — see note below
+  trajectories/
+    000.npy
+    001.npy
+    ...
+```
+
+### `joint_states.csv`
+
+Always just the header row (`t,q1,q2,q3,q4,q5,q6,q7,eef_x,eef_y,eef_z,
+z_error,orientation_error_deg`) with **no data rows** — `RunLogger` always
+creates this file, but the replay script never calls `log_joint_state`
+(there's no live robot). Safe to ignore.
+
+### `trajectories/<row_index>.npy`
+
+- One `.npy` file per row that **solved and wasn't skipped**, named by row
+  index zero-padded to 3 digits (`f"{i:03d}.npy"`, e.g. `000.npy`, `012.npy`).
+  Rows that were skipped (via `--skip_rows`) or that didn't solve have no
+  file.
+- Shape: `(n, 7)`, dtype `float32` — `n` interpolated waypoints, each a
+  7-DOF **ambient joint-space** configuration (FR3 joint angles q1..q7, in
+  the "fr3marker" ambient robot model used throughout this codebase).
+- This planner never prepends a bootstrap segment (unlike
+  `plan_to_goal_from_current` in the live-robot code path), so there is
+  always exactly **one segment per solved row** — no need to distinguish
+  segments in the output.
+- `n` matches that row's `num_waypoints` field in this replay's own
+  `planning_queries.jsonl` (see below) when the replay reproduces the
+  original exactly; small differences (e.g. from the waypoint-repair logic)
+  will show up in the console log as `(num_waypoints differs from original
+  log!)`.
+
+### `planning_queries.jsonl`
+
+One JSON object per row **considered** (i.e. every row from the original
+log except those in `--skip_rows`), written via
+`RunLogger.log_planning_query` — same schema as the original run's own
+`planning_queries.jsonl`, so it can be diffed field-by-field against the
+original. Fields (all JSON-serializable; numpy arrays/scalars converted to
+plain lists/floats):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `t` | float | Wall-clock time this replay processed the row (`time.time()`, Unix epoch seconds) — **not** meaningful to compare against the original row's `t`, since this is a fresh replay run. |
+| `q_current` | `[float]×7` | The row's original logged current joint configuration (fed to the fake robot stand-in), unchanged from the source log. |
+| `start_state` | `[float]×8` or absent | The resolved start pose as `[x, y, z, qx, qy, qz, qw, psi]` (position, orientation quaternion, then the psi/joint-7 branch parameter) — see `make_pose_array_general`. Absent if `resolve_start_goal` failed (see `error` below). |
+| `goal_state` | `[float]×8` or absent | Same 8-value format as `start_state`, for the resolved goal. Absent on `resolve_start_goal` failure. |
+| `goal_eef_pos` | `[float]×3` | The row's original logged goal end-effector position `[x, y, z]`, unchanged from source. |
+| `goal_psi_hint` | float or `null` | The row's original logged psi hint for the goal (a shortcut IK guess), unchanged from source. |
+| `smm` | `[float]×3` or absent | The resolved branch selector (case6_sel, case1_sel, and a third component), identified from `q_current`'s real forward-kinematics pose. Absent on `resolve_start_goal` failure. |
+| `solved` | bool | Whether **this replay's** RRTC found a path. Compare against the original row's `solved` to check for a mismatch. |
+| `rrtc_nanoseconds` | int | RRTC's own reported wall time for this replay's `rrtc()` call. |
+| `rrtc_iterations` | int | RRTC's own reported iteration count. |
+| `shortcut_changed` | bool or `null` | Whether the post-RRTC shortcut pass changed the path; `null` if unsolved. |
+| `external_duration_s` | float | Wall-clock time for the whole `plan_to_goal_from_current_checked` call (covers resolve + plan + waypoint resolution, not just the raw `rrtc()` call). |
+| `num_waypoints` | int or `null` | Length of the resolved/repaired ambient path (same value as the `.npy` file's row count for this row), or `null` if unsolved. |
+| `identify_smm_and_psi_s` | float | Time to identify which branch/psi `q_current` corresponds to. |
+| `goal_resolve_s` | float | Time to IK-resolve the goal (with psi sweep if needed). |
+| `spheres` | `[{"position": [x,y,z], "radius": r}]` | The OptiTrack obstacle spheres used for this row's environment (taken from the *original* log row, then fed back into this replay's environment — so this should exactly match the corresponding field in the original log). |
+| `cuboids` | `[{"position": [x,y,z]}]` | Always `[]` here too (same vamp binding quirk noted above) — not meaningful; the real wall geometry used for planning came from `maze_json`, not this field. |
+| `error` | string, only present on failure | e.g. `"resolve_start_goal failed"` — present instead of `start_state`/`goal_state`/`smm` when the row's start/goal couldn't be resolved at all. |
+
+Note: on `resolve_start_goal` failure, the row is logged with `solved=False`
+and an `error` field, and has `start_state`/`goal_state`/`smm`/
+`rrtc_nanoseconds`/`rrtc_iterations`/`shortcut_changed`/`num_waypoints`/
+`identify_smm_and_psi_s`/`goal_resolve_s` all **absent** (not present as
+`null` — simply missing keys), since `plan_to_goal_from_current_checked`
+returns before computing them.
+
+## Console output / summary
+
+For each row, the script prints one of:
+- `row {i}: skipped (--skip_rows)`
+- `row {i}: MISMATCH -- original solved={bool}, replay solved={bool}` (and
+  the row is otherwise excluded from the "matched" count, but still gets a
+  `planning_queries.jsonl` entry and, if it did solve, a `.npy` file)
+- `row {i}: unsolved (matches original)`
+- `row {i}: solved, {n} waypoints` (optionally suffixed
+  `  (num_waypoints differs from original log!)` if `n` doesn't match the
+  original row's `num_waypoints`)
+
+It also prints, when any waypoints needed repair:
+`    resolve_ambient_path_checked: {k}/{n} waypoints failed FK
+self-consistency (indices [...]) -- repairing by interpolation`
+
+And a final summary line:
+```
+done. {num_matched}/{considered} solved rows reproduced the exact original
+num_waypoints; {num_solved_mismatch} solved/unsolved mismatches
+({num_skipped} row(s) skipped).
+trajectories written to <out_dir>/trajectories/
+replay's own planning log: <out_dir>/planning_queries.jsonl
+```
+
+## How to use the output to answer "what path did the robot plan for row N"
+
+1. Read row `N` (0-indexed, matching the original log's line order) from
+   `<out_dir>/planning_queries.jsonl` to confirm it solved and to get its
+   metadata (`smm`, `start_state`, `goal_state`, timings, etc).
+2. Load `<out_dir>/trajectories/{N:03d}.npy` — an `(n, 7)` float32 array of
+   ambient joint-space waypoints, in order from start to goal, at 64-step
+   interpolation resolution (post-shortcut).
+3. To sanity-check a specific waypoint's task-space pose, run FK
+   (`vamp.fr3marker.eefk(q)`) on any row of the array — for a well-resolved
+   waypoint this should land at `z ≈ Z_HEIGHT` (0.14) with the tool facing
+   straight down; the script's own repair logic guarantees this holds within
+   the checked tolerances (1e-3 z/orientation via
+   `eef_pose_satisfies_constraint`, 1mm xy via `_resolved_waypoint_is_valid`)
+   for every waypoint in the output, whether resolved directly or repaired
+   by interpolation.
