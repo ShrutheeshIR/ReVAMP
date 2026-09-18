@@ -32,7 +32,9 @@ WARN_ORANGE = (0, 143, 209)      # #D18F00
 WHITE = (245, 245, 245)
 
 TRACE_FRAME = "fr3_tip"
-TAIL_S = 6.0          # bright tail duration
+TAIL_S = 10.0         # bright tail duration
+MID_S = 40.0          # mid-fade band
+HIST_S = 75.0         # older than this is dropped entirely
 OBSTACLE_FLASH_S = 1.8
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
@@ -79,22 +81,27 @@ class Overlay:
         t0, t1 = self.t_log[0], te
         if t1 <= t0:
             return
-        ts = np.arange(t0, t1, 1.0 / 30)
+        ts = np.arange(max(t0, t1 - HIST_S), t1, 1.0 / 30)
         if len(ts) < 2:
             return
         p, _ = self.tip.at(ts)
         uv = self.px(p).astype(np.int32)
         age = te - ts
-        canvas = img.copy()
-        # faded history
-        old = uv[age > TAIL_S]
-        if len(old) > 1:
-            cv2.polylines(canvas, [old], False, REVAMP_BLUE, 5,
-                          cv2.LINE_AA)
+        # Age bands, oldest first so the fresh tail draws on top; each band
+        # gets its own alpha so history recedes instead of accumulating.
+        bands = [
+            (age <= HIST_S) & (age > MID_S), REVAMP_BLUE, 5, 0.30,
+            (age <= MID_S) & (age > TAIL_S), REVAMP_BLUE, 6, 0.55,
+            (age <= TAIL_S), HIGHLIGHT, 9, 0.85,
+        ]
         new = uv[age <= TAIL_S]
-        if len(new) > 1:
-            cv2.polylines(canvas, [new], False, HIGHLIGHT, 9, cv2.LINE_AA)
-        cv2.addWeighted(canvas, 0.75, img, 0.25, 0, dst=img)
+        for i in range(0, len(bands), 4):
+            sel, color, width, alpha = bands[i:i + 4]
+            seg = uv[sel]
+            if len(seg) > 1:
+                canvas = img.copy()
+                cv2.polylines(canvas, [seg], False, color, width, cv2.LINE_AA)
+                cv2.addWeighted(canvas, alpha, img, 1 - alpha, 0, dst=img)
         if len(new):
             cv2.circle(img, tuple(new[-1]), 14, HIGHLIGHT, -1, cv2.LINE_AA)
             cv2.circle(img, tuple(new[-1]), 14, WHITE, 2, cv2.LINE_AA)

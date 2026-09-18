@@ -56,14 +56,17 @@ class GhostRenderer:
                          plant.GetFrameByName("fr3_link0", model))
 
         # Floating spheres for logged obstacles, parked far away when unused.
+        # Own model instance so the arm's SetPositions stays 7-dof.
         self.obstacle_bodies = []
+        obs_model = (plant.AddModelInstance("obstacles")
+                     if with_obstacle_slots else None)
         for i in range(with_obstacle_slots):
             body = plant.AddRigidBody(
-                f"obs_{i}", model,
+                f"obs_{i}", obs_model,
                 SpatialInertia(1.0, np.zeros(3), UnitInertia.SolidSphere(0.03)))
             plant.RegisterVisualGeometry(
                 body, RigidTransform(), Sphere(0.03), f"obs_{i}_vis",
-                Rgba(0.82, 0.56, 0.0, 1.0))  # McVAMP orange #D18F00
+                np.array([0.82, 0.56, 0.0, 1.0]))  # McVAMP orange #D18F00
             self.obstacle_bodies.append(body)
 
         plant.Finalize()
