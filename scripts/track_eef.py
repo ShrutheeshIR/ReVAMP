@@ -25,7 +25,8 @@ import common  # noqa: E402
 TRACK_FPS = 3.0
 TRACK_FRAME = "fr3_marker_holder"
 TEMPLATE = 150          # px, template side
-SEARCH = 190            # px, search half-window
+SEARCH = 70             # px, search half-window (predictions come from the
+                        # refined camera, so drift room stays small)
 MIN_SCORE = 0.55        # accept threshold for NCC peak
 SEED_SCORE = 0.75       # min score to allow template EMA update
 T_START = 9.0           # skip the tag block / setup at the very start
@@ -33,15 +34,15 @@ Q7_BIN = 0.6            # rad per template bin
 
 
 def main():
-    sync = common.read_json(os.path.join(common.CALIB_DIR, "sync.json"))
-    delta = common.read_json(
-        os.path.join(common.CALIB_DIR, "motion_delta.json"))["delta_s"]
-    tag = common.read_json(os.path.join(common.CALIB_DIR, "tag_init.json"))
-    v0 = sync["video_start_epoch"]
+    cam_path = common.camera_path()
+    cam = common.read_json(cam_path)
+    print(f"predicting with {os.path.basename(cam_path)}")
+    v0 = cam["video_start_epoch"]
+    delta = cam["delta_s"]
     w, h = common.VIDEO_WH
-    K = np.array([[tag["f_guess_px"], 0, w / 2],
-                  [0, tag["f_guess_px"], h / 2], [0, 0, 1]])
-    rvec, tvec = np.array(tag["rvec"]), np.array(tag["tvec"])
+    K = np.array([[cam["f"], 0, cam["cx"]],
+                  [0, cam["f"], cam["cy"]], [0, 0, 1]])
+    rvec, tvec = np.array(cam["rvec"]), np.array(cam["tvec"])
 
     js = common.load_joint_states()
     qs = common.joint_matrix(js)

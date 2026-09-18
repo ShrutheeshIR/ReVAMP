@@ -65,11 +65,19 @@ def project(params, pts3):
 
 def main():
     calib = common.CALIB_DIR
-    sync = common.read_json(os.path.join(calib, "sync.json"))
     tag = common.read_json(os.path.join(calib, "tag_init.json"))
-    motion = common.read_json(os.path.join(calib, "motion_delta.json"))
     track = common.read_json(os.path.join(calib, "track.json"))
-    v0 = sync["video_start_epoch"]
+    # Initialize from the best silhouette-based camera (never from our own
+    # previous output).
+    for name in ("camera_deep.json", "camera_sil.json"):
+        p = os.path.join(calib, name)
+        if os.path.exists(p):
+            cam0 = common.read_json(p)
+            print(f"initializing from {name}")
+            break
+    else:
+        sys.exit("run silhouette_calib.py / deep_calib.py first")
+    v0 = cam0["video_start_epoch"]
     w, h = common.VIDEO_WH
 
     pts = track["points"]
@@ -88,8 +96,8 @@ def main():
 
     # Parameters: f cx cy k1 k2 rvec(3) tvec(3) delta r(3)
     x0 = np.concatenate([
-        [tag["f_guess_px"], w / 2, h / 2, 0.0, 0.0],
-        tag["rvec"], tag["tvec"], [motion["delta_s"]], np.zeros(3)])
+        [cam0["f"], cam0["cx"], cam0["cy"], cam0["k1"], cam0["k2"]],
+        cam0["rvec"], cam0["tvec"], [cam0["delta_s"]], np.zeros(3)])
 
     def residuals(x):
         delta, r = x[11], x[12:15]
@@ -143,6 +151,12 @@ def main():
     os.makedirs(common.SCRATCH, exist_ok=True)
     fig.savefig(os.path.join(common.SCRATCH, "calib_residuals.png"), dpi=110)
 
+    # camera.json outranks camera_deep.json in camera_path(), so only claim
+    # that rank when the point-based solve is actually trustworthy.
+    if keep.sum() < 200 or np.sqrt((inl**2).mean()) > 6.0:
+        print("NOT writing camera.json (too few inliers or rms too high); "
+              "silhouette calibration remains authoritative")
+        return
     common.write_json(os.path.join(calib, "camera.json"), {
         "image_wh": [w, h],
         "f": x[0], "cx": x[1], "cy": x[2], "k1": x[3], "k2": x[4],
