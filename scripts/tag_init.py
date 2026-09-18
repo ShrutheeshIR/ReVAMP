@@ -2,8 +2,11 @@
 wrinkled, so this is never trusted beyond seeding search windows).
 
 The 36h11 id-1 tag lies flat on TOP of the 10 cm block in front of the robot
-base (apriltag_desc.txt: tag center 23 cm in front of, 19 cm above the base;
-"center of the apriltag, i.e. top of the block"). The observed ~2:1 vertical
+base (apriltag_desc.txt: tag center 17.3 cm in front of, 18.0 cm above the
+base; "center of the apriltag, i.e. top of the block" -- corrected from an
+original eyeballed 23/19 cm, cross-validated against both camera_deep.json's
+own extrinsics and the nearest OptiTrack obstacle sphere in the maze log;
+see apriltag_desc.txt for the derivation). The observed ~2:1 vertical
 foreshortening at ~30 deg camera elevation confirms the tag faces UP.
 
 Detects the tag over the first seconds of video, averages corners across
@@ -27,8 +30,8 @@ from pupil_apriltags import Detector
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 
-TAG_CENTER = np.array([0.23, 0.0, 0.19])
-TAG_SIZE = 0.083   # m, estimated from pixels vs the 10 cm block; init only
+TAG_CENTER = np.array([0.173, 0.0, 0.180])
+TAG_SIZE = 0.0796  # m, calipered black-to-black (see apriltag_desc.txt)
 F_GUESS = 2700.0   # px, iPhone main lens ballpark for 4K; refined later
 DETECT_TIMES = [0.5, 1.0, 2.0, 3.0, 4.0]
 

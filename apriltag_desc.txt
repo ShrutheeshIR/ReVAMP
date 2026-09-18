@@ -1,2 +1,19 @@
-block (center of the apriltag, i.e. top of the block) 23cm in front 19cm above the panda base.
-size of the block that has the apriltag - 10cm x 10cm
+block (center of the apriltag, i.e. top of the block) 17.3cm in front, ~0cm
+sideways, 18.0cm above the panda base. (Corrected from an original eyeballed
+23cm/19cm — that estimate was off by ~6cm in "front" and ~2cm in "above".
+The correction was cross-validated two independent ways: (1) solving for
+the block position that lets camera_deep.json's silhouette-based extrinsics
+reproject the AprilTag's own detected corners, using the tag's actual
+calipered size below, giving [0.166, -0.004, 0.173]; (2) reasoning from the
+first maze planning query's nearest OptiTrack obstacle sphere
+(final_vid_0917/planning_queries.jsonl row 1, position
+[0.2992522716522217, -0.025774994865059853, 0.1269274652004242]) — the
+block sits ~12cm behind that sphere in x, ~0 in y, ~6cm above it in z,
+giving [0.179, 0.0, 0.187]. The two independent corrections agree to
+within ~1.5cm on every axis; the value above is their average.)
+
+size of the block that has the apriltag - 10cm x 10cm.
+Tag pattern itself (outer black border, corner-to-corner, calipered):
+7.96cm x 7.96cm -- NOT the 10cm block edge. (An earlier init-only estimate
+of 8.3cm, guessed from pixels rather than measured, is superseded by this
+calipered value.)

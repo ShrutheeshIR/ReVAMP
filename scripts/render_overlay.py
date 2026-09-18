@@ -48,6 +48,8 @@ PLAN_ALPHA = 0.75
 PLAN_FLASH_S = 0.6         # full-bright right after a replan lands
 PLAN_WIDTH = 6
 PLAN_SEARCH_AHEAD = 250    # waypoints scanned per tick to advance progress
+PLAN_FULL_ALPHA = 0.35     # faint, so the bright remaining-ahead dash reads
+PLAN_FULL_WIDTH = 2
 
 
 def dashed_polyline(img, uv, color, width, dash=34, gap=22):
@@ -126,7 +128,8 @@ class Overlay:
         # Sequential-render state for the live-plan overlay: the active plan
         # row, how far along it the robot has progressed, and the projected
         # remaining path drawn since the last 10 Hz tick.
-        self._plan_state = {"row": None, "prog": 0, "tick": None, "uv": None}
+        self._plan_state = {"row": None, "prog": 0, "tick": None, "uv": None,
+                            "full_uv": None}
 
     # -- time mapping ------------------------------------------------------
     def log_time(self, t_video):
@@ -263,6 +266,8 @@ class Overlay:
             pts = self.plans.tip[row]
             if row != st["row"]:
                 st["row"], st["prog"] = row, 0
+                st["full_uv"] = (self.px(pts).astype(np.int32)
+                                  if len(pts) >= 2 else None)
             cur, _ = self.tip.at(te)
             d = np.linalg.norm(pts[:, :2] - cur[:2], axis=1)
             if jumped:
@@ -276,6 +281,12 @@ class Overlay:
             remaining = pts[st["prog"]:]
             st["uv"] = (self.px(remaining).astype(np.int32)
                         if len(remaining) >= 2 else None)
+        if st["full_uv"] is not None:
+            canvas = img.copy()
+            cv2.polylines(canvas, [st["full_uv"]], False, PLAN_COLOR,
+                          PLAN_FULL_WIDTH, cv2.LINE_AA)
+            cv2.addWeighted(canvas, PLAN_FULL_ALPHA, img,
+                            1 - PLAN_FULL_ALPHA, 0, dst=img)
         if st["uv"] is None:
             return
         age = te - self.q_t[row]     # age of THIS plan, not the newest query

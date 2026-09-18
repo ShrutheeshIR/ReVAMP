@@ -22,9 +22,9 @@ SCRATCH = os.path.join(REPO, "scratch")
 # Offline replay of the planner (see maze_expt_logs/planned_traj_readme):
 # trajectories/NNN.npy is the (n,7) joint-space plan for query row NNN.
 TRAJ_DIR = os.path.join(REPO, "maze_expt_logs", "trajectories")
-URDF = os.path.join(
-    REPO, "codebase", "fr3_trajopt", "models", "fr3_marker",
-    "fr3_expo_spherized.urdf")
+FR3_MARKER_URDF = os.path.join(
+    REPO, "models", "fr3_marker", "fr3_expo_spherized.urdf")
+URDF = FR3_MARKER_URDF
 # GL-renderable variant (visual meshes with normals; see make_gl_meshes.py).
 # Same kinematics; use for Drake render engines, fall back to URDF for FK.
 URDF_GL_PATH = URDF.replace(".urdf", "_gl.urdf")
