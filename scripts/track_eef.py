@@ -24,9 +24,11 @@ import common  # noqa: E402
 
 TRACK_FPS = 3.0
 TRACK_FRAME = "fr3_marker_holder"
-TEMPLATE = 150          # px, template side
-SEARCH = 70             # px, search half-window (predictions come from the
-                        # refined camera, so drift room stays small)
+TEMPLATE = 110          # px, template side
+SEARCH = 90             # px, search half-window; window (2*SEARCH) must
+                        # exceed TEMPLATE or matching/seeding can't happen —
+                        # ±35 px slack fits the refined camera's prediction
+                        # error with room to spare
 MIN_SCORE = 0.55        # accept threshold for NCC peak
 SEED_SCORE = 0.75       # min score to allow template EMA update
 T_START = 9.0           # skip the tag block / setup at the very start

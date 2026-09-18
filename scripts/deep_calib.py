@@ -27,12 +27,16 @@ from scipy.optimize import minimize
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import common  # noqa: E402
 
-SCALE = 4                 # work at 960x540
-N_FRAMES = 80
+SCALE = int(os.environ.get("DEEP_SCALE", 4))     # work at 3840/SCALE
+N_FRAMES = int(os.environ.get("DEEP_FRAMES", 80))
 T_RANGE = (9.0, 384.0)
-RING_PX = 8
+RING_PX = max(4, 32 // SCALE)
 TRIM = 0.15               # drop this fraction of worst frames
-CACHE = os.path.join(common.SCRATCH, "deep_calib_frames.npz")
+CACHE = os.path.join(common.SCRATCH,
+                     f"deep_calib_frames_s{SCALE}_n{N_FRAMES}.npz")
+# Init/output can be overridden so a high-res round refines the low-res one.
+INIT = os.environ.get("DEEP_INIT", "camera_sil.json")
+OUT = os.environ.get("DEEP_OUT", "camera_deep.json")
 
 
 class MeshSilhouette:
@@ -116,7 +120,9 @@ def load_frames(times):
 
 def main():
     calib = common.CALIB_DIR
-    cam0 = common.read_json(os.path.join(calib, "camera_sil.json"))
+    cam0 = common.read_json(os.path.join(calib, INIT))
+    print(f"init from {INIT} (scale {SCALE}, {N_FRAMES} frames) -> {OUT}",
+          flush=True)
     v0 = cam0["video_start_epoch"]
     w, h = common.VIDEO_WH
 
@@ -148,7 +154,7 @@ def main():
         if val > state["best"]:
             state["best"] = val
             R = cv2.Rodrigues(x[3:6])[0]
-            common.write_json(os.path.join(calib, "camera_deep.json"), {
+            common.write_json(os.path.join(calib, OUT), {
                 "image_wh": [w, h],
                 "f": float(x[0]), "cx": float(x[1]), "cy": float(x[2]),
                 "k1": 0.0, "k2": 0.0,
