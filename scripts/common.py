@@ -22,6 +22,13 @@ SCRATCH = os.path.join(REPO, "scratch")
 URDF = os.path.join(
     REPO, "codebase", "fr3_trajopt", "models", "fr3_marker",
     "fr3_expo_spherized.urdf")
+# GL-renderable variant (visual meshes with normals; see make_gl_meshes.py).
+# Same kinematics; use for Drake render engines, fall back to URDF for FK.
+URDF_GL_PATH = URDF.replace(".urdf", "_gl.urdf")
+
+
+def urdf_for_rendering():
+    return URDF_GL_PATH if os.path.exists(URDF_GL_PATH) else URDF
 
 VIDEO_WH = (3840, 2160)
 VIDEO_FPS = 4641200 / 77389  # avg_frame_rate from ffprobe (~59.97)
