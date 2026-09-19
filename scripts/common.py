@@ -22,6 +22,11 @@ SCRATCH = os.path.join(REPO, "scratch")
 # Offline replay of the planner (see maze_expt_logs/planned_traj_readme):
 # trajectories/NNN.npy is the (n,7) joint-space plan for query row NNN.
 TRAJ_DIR = os.path.join(REPO, "maze_expt_logs", "trajectories")
+# RRT-connect explored tree per query row: trees/NNN.npz has "nodes"
+# ((n,8) task-space pose [x,y,z,qx,qy,qz,qw,psi], first 3 cols already a
+# usable 3D point -- no FK needed), "parents" ((n,) int64, edge to i's
+# parent), "owner" ((n,) uint8, which of the two RRT-connect trees).
+TREE_DIR = os.path.join(REPO, "planned_trajectory_info", "trees")
 FR3_MARKER_URDF = os.path.join(
     REPO, "models", "fr3_marker", "fr3_expo_spherized.urdf")
 URDF = FR3_MARKER_URDF

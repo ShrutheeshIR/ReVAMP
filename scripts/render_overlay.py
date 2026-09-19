@@ -38,6 +38,14 @@ HIST_S = 75.0         # older than this is dropped entirely
 OBSTACLE_FLASH_S = 1.8
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
+# Experimental --tree overlay: the whole RRT-connect explored tree for the
+# active query row (planned_trajectory_info/trees/NNN.npz), very faint so
+# it doesn't compete with the actual trace/plan -- this is for looking at,
+# not part of the settled visualization design.
+TREE_COLOR = (240, 200, 240)   # very light purple/lavender, BGR
+TREE_ALPHA = 0.22
+TREE_WIDTH = 1
+
 # Live-plan overlay (maze_expt_logs trajectories): the remaining portion of
 # the active plan, ahead of the robot, dashed so it reads as intent rather
 # than executed path. Green = "path ahead is clear"; orange already means
@@ -103,8 +111,44 @@ class PlanPaths:
             print(f"cached -> {cache}")
 
 
+class TreeOverlay:
+    """The whole RRT-connect explored tree for one query row, lazily
+    loaded from planned_trajectory_info/trees/NNN.npz (not every row has
+    one). Nodes are task-space poses; the first 3 columns are already an
+    (x,y,z) point in the base frame -- no FK needed, unlike PlanPaths."""
+
+    def __init__(self, overlay):
+        self.ov = overlay
+        self.row = None
+        self.segments_uv = None   # cached projected edges for self.row
+
+    def _load(self, row):
+        path = os.path.join(common.TREE_DIR, f"{row:03d}.npz")
+        if not os.path.exists(path):
+            return None
+        z = np.load(path)
+        nodes, parents = z["nodes"], z["parents"]
+        pts3 = nodes[:, :3]
+        child = np.arange(len(parents))
+        has_parent = child != parents   # root has parents[0] == 0 == itself
+        a = self.ov.px(pts3[parents[has_parent]])
+        b = self.ov.px(pts3[child[has_parent]])
+        return np.stack([a, b], axis=1).astype(np.int32)   # (n_edges,2,2)
+
+    def draw(self, img, row):
+        if row != self.row:
+            self.segments_uv = self._load(row)
+            self.row = row
+        if self.segments_uv is None or len(self.segments_uv) == 0:
+            return
+        canvas = img.copy()
+        cv2.polylines(canvas, list(self.segments_uv), False, TREE_COLOR,
+                      TREE_WIDTH, cv2.LINE_AA)
+        cv2.addWeighted(canvas, TREE_ALPHA, img, 1 - TREE_ALPHA, 0, dst=img)
+
+
 class Overlay:
-    def __init__(self, plan=False):
+    def __init__(self, plan=False, tree=False):
         cam = common.read_json(common.camera_path())
         self.cam = cam
         self.K = np.array([[cam["f"], 0, cam["cx"]],
@@ -131,6 +175,7 @@ class Overlay:
         self.arm = common.ArmKinematics()
         self.qs = common.joint_matrix(js)
         self.plans = PlanPaths(self.arm) if plan else None
+        self.tree = TreeOverlay(self) if tree else None
         # Sequential-render state for the live-plan overlay: the active plan
         # row, how far along it the robot has progressed, and the projected
         # remaining path drawn since the last 10 Hz tick.
@@ -320,8 +365,16 @@ class Overlay:
         for p in uv:
             cv2.circle(img, tuple(p), 9, (0, 255, 0), 2, cv2.LINE_AA)
 
+    def draw_tree(self, img, t_video):
+        te = self.log_time(t_video)
+        row = int(np.searchsorted(self.q_t, te)) - 1
+        if row >= 0:
+            self.tree.draw(img, row)
+
     def annotate(self, img, t_video, skeleton=False, obstacle_rings=True):
         self.draw_trace(img, t_video)
+        if self.tree is not None:
+            self.draw_tree(img, t_video)
         if self.plans is not None:
             self.draw_plan(img, t_video)
         self.draw_goal(img, t_video)
@@ -411,9 +464,12 @@ def main():
     ap.add_argument("--plan", action="store_true",
                     help="overlay the live current plan (remaining path "
                          "ahead of the robot, ~10 Hz refresh)")
+    ap.add_argument("--tree", action="store_true",
+                    help="experimental: draw the whole RRT-connect "
+                         "explored tree for the active query, very faint")
     args = ap.parse_args()
 
-    ov = Overlay(plan=args.plan)
+    ov = Overlay(plan=args.plan, tree=args.tree)
     os.makedirs(common.SCRATCH, exist_ok=True)
     if args.montage:
         times = list(np.linspace(12, 380, 12))
@@ -433,7 +489,8 @@ def main():
             from sim_ghost import GhostRenderer
             ghost = GhostRenderer(with_obstacle_slots=9)
         name = ("highlight" + ("_plan" if args.plan else "")
-                + ("_ghost" if args.ghost else "") + "_4k.mp4")
+                + ("_ghost" if args.ghost else "")
+                + ("_tree" if args.tree else "") + "_4k.mp4")
         render_segment(ov, args.segment[0], args.segment[1],
                        os.path.join(common.REPO, "out", name),
                        ghost=ghost, ghost_alpha=args.ghost_alpha)
