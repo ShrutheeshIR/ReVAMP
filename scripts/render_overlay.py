@@ -131,6 +131,12 @@ class TreeOverlay:
         pts3 = nodes[:, :3]
         child = np.arange(len(parents))
         has_parent = child != parents   # root has parents[0] == 0 == itself
+        if not has_parent.any():
+            # A "direct connection" solve: both RRT-connect trees are a
+            # single root, zero edges grown. cv2.projectPoints returns
+            # None (not an empty array) for zero points, so short-circuit
+            # rather than let that crash .reshape() downstream.
+            return np.zeros((0, 2, 2), dtype=np.int32)
         a = self.ov.px(pts3[parents[has_parent]])
         b = self.ov.px(pts3[child[has_parent]])
         return np.stack([a, b], axis=1).astype(np.int32)   # (n_edges,2,2)
