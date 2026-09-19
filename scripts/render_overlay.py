@@ -122,6 +122,12 @@ class Overlay:
         self.tip_plane_z = float(np.median(self.tip.p[:, 2]))
         self.queries = common.load_queries()
         self.q_t = np.array([q["t"] for q in self.queries])
+        # The task alternates between exactly two fixed points (confirmed:
+        # only 2 distinct goal_eef_pos values across all 101 queries) --
+        # each is "goal" while a query targets it and "start" the moment
+        # the next query targets the other one. Both are drawn permanently.
+        self.end_points = sorted({tuple(np.round(q["goal_eef_pos"], 6))
+                                  for q in self.queries})
         self.arm = common.ArmKinematics()
         self.qs = common.joint_matrix(js)
         self.plans = PlanPaths(self.arm) if plan else None
@@ -178,16 +184,27 @@ class Overlay:
         return (self.queries[i], te - self.q_t[i]) if i >= 0 else (None, 1e9)
 
     def draw_goal(self, img, t_video):
+        """Both fixed end points, permanently: whichever the active query
+        targets is "goal" (bright, filled); the other is "start" (hollow,
+        dimmer) -- they swap on every query, since the task just bounces
+        between these same two points the whole time."""
         q, _ = self.active_query(t_video)
-        if q is None:
-            return
-        g = np.array(q["goal_eef_pos"], float)
-        g[2] = self.tip_plane_z
-        uv = self.px(g)[0].astype(int)
-        cv2.circle(img, tuple(uv), 22, WHITE, 3, cv2.LINE_AA)
-        cv2.circle(img, tuple(uv), 8, WHITE, -1, cv2.LINE_AA)
-        cv2.putText(img, "goal", (uv[0] + 30, uv[1] + 8), FONT, 1.4,
-                    WHITE, 2, cv2.LINE_AA)
+        goal_pos = np.array((q or self.queries[0])["goal_eef_pos"], float)
+        goal_key = tuple(np.round(goal_pos, 6))
+        for p in self.end_points:
+            g = np.array(p, float)
+            g[2] = self.tip_plane_z
+            uv = self.px(g)[0].astype(int)
+            if p == goal_key:
+                cv2.circle(img, tuple(uv), 22, WHITE, 3, cv2.LINE_AA)
+                cv2.circle(img, tuple(uv), 8, WHITE, -1, cv2.LINE_AA)
+                cv2.putText(img, "goal", (uv[0] + 30, uv[1] + 8), FONT, 1.4,
+                           WHITE, 2, cv2.LINE_AA)
+            else:
+                cv2.circle(img, tuple(uv), 22, WHITE, 3, cv2.LINE_AA)
+                cv2.circle(img, tuple(uv), 8, WHITE, 3, cv2.LINE_AA)
+                cv2.putText(img, "start", (uv[0] + 30, uv[1] + 8), FONT, 1.4,
+                           WHITE, 2, cv2.LINE_AA)
 
     def draw_obstacles(self, img, t_video):
         q, age = self.active_query(t_video)
