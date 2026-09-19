@@ -107,6 +107,7 @@ scripts/         pipeline code (build_video.py is the entry point)
 calib/           committed calibration artifacts (small JSON)
 final_vid_0917/  hardware run logs
 maze_expt_logs/  replayed planned trajectories (+ schema readme)
+notes/           tracked project notes, incl. Claude's working memory
 scratch/         gitignored diagnostics / preview renders
 out/             gitignored rendered deliverables
 paper/           the ReVAMP paper source (terminology + colors)
