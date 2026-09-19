@@ -42,9 +42,9 @@ FONT = cv2.FONT_HERSHEY_DUPLEX
 # active query row (planned_trajectory_info/trees/NNN.npz), very faint so
 # it doesn't compete with the actual trace/plan -- this is for looking at,
 # not part of the settled visualization design.
-TREE_COLOR = (240, 200, 240)   # very light purple/lavender, BGR
-TREE_ALPHA = 0.22
-TREE_WIDTH = 1
+TREE_COLOR = (226, 43, 138)    # blue-violet, BGR
+TREE_ALPHA = 0.25
+TREE_WIDTH = 2
 
 # Live-plan overlay (maze_expt_logs trajectories): the remaining portion of
 # the active plan, ahead of the robot, dashed so it reads as intent rather
@@ -121,14 +121,29 @@ class TreeOverlay:
         self.ov = overlay
         self.row = None
         self.segments_uv = None   # cached projected edges for self.row
+        self.pts3 = None          # (n,3) z-corrected node positions, this row
+        self.owner = None         # (n,) which RRT-connect tree (0=start,1=goal)
+        self.parents = None
 
-    def _load(self, row):
+    def _ensure(self, row):
+        if row == self.row:
+            return
+        self.row = row
         path = os.path.join(common.TREE_DIR, f"{row:03d}.npz")
         if not os.path.exists(path):
-            return None
+            self.segments_uv = self.pts3 = self.owner = self.parents = None
+            return
         z = np.load(path)
-        nodes, parents = z["nodes"], z["parents"]
-        pts3 = nodes[:, :3]
+        nodes, parents, owner = z["nodes"], z["parents"], z["owner"]
+        pts3 = nodes[:, :3].copy()
+        # Task-space nodes carry the planner's own fixed maze-plane z
+        # (0.14) rather than the URDF/camera-calibration frame's z for the
+        # same physical height -- draw_goal already applies this identical
+        # correction to start_state/goal_state (which ARE this tree's own
+        # root nodes, verified byte-identical), so apply it here too for
+        # every node, not just the two roots.
+        pts3[:, 2] = self.ov.tip_plane_z
+        self.pts3, self.owner, self.parents = pts3, owner, parents
         child = np.arange(len(parents))
         has_parent = child != parents   # root has parents[0] == 0 == itself
         if not has_parent.any():
@@ -136,21 +151,38 @@ class TreeOverlay:
             # single root, zero edges grown. cv2.projectPoints returns
             # None (not an empty array) for zero points, so short-circuit
             # rather than let that crash .reshape() downstream.
-            return np.zeros((0, 2, 2), dtype=np.int32)
+            self.segments_uv = np.zeros((0, 2, 2), dtype=np.int32)
+            return
         a = self.ov.px(pts3[parents[has_parent]])
         b = self.ov.px(pts3[child[has_parent]])
-        return np.stack([a, b], axis=1).astype(np.int32)   # (n_edges,2,2)
+        self.segments_uv = np.stack([a, b], axis=1).astype(np.int32)
 
     def draw(self, img, row):
-        if row != self.row:
-            self.segments_uv = self._load(row)
-            self.row = row
+        self._ensure(row)
         if self.segments_uv is None or len(self.segments_uv) == 0:
             return
         canvas = img.copy()
         cv2.polylines(canvas, list(self.segments_uv), False, TREE_COLOR,
                       TREE_WIDTH, cv2.LINE_AA)
         cv2.addWeighted(canvas, TREE_ALPHA, img, 1 - TREE_ALPHA, 0, dst=img)
+
+    def closest_start_node_to_goal(self, row):
+        """On a failed solve: the start-tree (owner==0) node nearest the
+        goal -- how close that side's search actually got. z is already
+        the same constant for every node (tip_plane_z), so this is
+        effectively the planar (x,y) distance on the maze."""
+        self._ensure(row)
+        if self.pts3 is None:
+            return None
+        is_root = np.arange(len(self.parents)) == self.parents
+        goal_roots = np.where(is_root & (self.owner == 1))[0]
+        start_mask = self.owner == 0
+        if len(goal_roots) == 0 or not start_mask.any():
+            return None
+        goal_pt = self.pts3[goal_roots[0]]
+        start_pts = self.pts3[start_mask]
+        idx = np.argmin(np.linalg.norm(start_pts - goal_pt, axis=1))
+        return start_pts[idx]
 
 
 class Overlay:
@@ -377,10 +409,28 @@ class Overlay:
         if row >= 0:
             self.tree.draw(img, row)
 
+    def draw_closest_approach(self, img, t_video):
+        """On a failed ("goal blocked") query: mark the start-tree node
+        that got nearest the goal -- how close that attempt actually
+        came, not just that it failed."""
+        te = self.log_time(t_video)
+        row = int(np.searchsorted(self.q_t, te)) - 1
+        if row < 0 or self.queries[row].get("solved", True):
+            return
+        pt = self.tree.closest_start_node_to_goal(row)
+        if pt is None:
+            return
+        uv = self.px(pt)[0].astype(int)
+        cv2.drawMarker(img, tuple(uv), WARN_ORANGE, cv2.MARKER_TILTED_CROSS,
+                       28, 3, cv2.LINE_AA)
+        cv2.putText(img, "closest attempt", (uv[0] + 20, uv[1] + 6), FONT,
+                   1.1, WARN_ORANGE, 2, cv2.LINE_AA)
+
     def annotate(self, img, t_video, skeleton=False, obstacle_rings=True):
         self.draw_trace(img, t_video)
         if self.tree is not None:
             self.draw_tree(img, t_video)
+            self.draw_closest_approach(img, t_video)
         if self.plans is not None:
             self.draw_plan(img, t_video)
         self.draw_goal(img, t_video)
