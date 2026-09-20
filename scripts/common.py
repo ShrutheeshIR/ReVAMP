@@ -114,10 +114,16 @@ MODEL_CORRECTION = os.path.join(CALIB_DIR, "model_correction.json")
 
 
 def load_model_correction(path=None):
-    """The committed correction, or an identity no-op if none exists."""
-    p = MODEL_CORRECTION if path is None else path
-    if p and os.path.exists(p):
-        return read_json(p)
+    """The committed correction, or an identity no-op if none exists.
+
+    MODEL_CORRECTION_PATH in the environment overrides the default so an
+    uncommitted candidate can be reviewed end-to-end (ghost clips etc.)
+    without touching calib/.
+    """
+    if path is None:
+        path = os.environ.get("MODEL_CORRECTION_PATH", MODEL_CORRECTION)
+    if path and os.path.exists(path):
+        return read_json(path)
     return {"dq": [0.0] * 7, "frames": {}}
 
 
