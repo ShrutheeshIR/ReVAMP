@@ -65,6 +65,17 @@ Then `build_video.py` runs only the mesh-conversion and render stages.
 Delete files in `calib/` (or use `--force-from`) if you actually want to
 re-derive the calibration from the video.
 
+### Ad-hoc renders (bypassing build_video.py)
+
+`render_overlay.py` can be run directly for a custom segment/flag
+combination instead of going through a pipeline stage, e.g. to render
+almost the whole video with the live plan and the RRT-connect explored
+tree overlaid:
+
+```
+python3 scripts/render_overlay.py --segment 5.0 450.0 --plan --tree --no-skeleton
+```
+
 ## Data
 
 - `final_vid_0917/` — the original hardware run's logs:
