@@ -103,6 +103,60 @@ def camera_path():
     raise FileNotFoundError("no camera calibration in calib/")
 
 
+# ------------------------------------------------- model correction (viz) --
+# Kinematic corrections fitted against the video (kin_calib.py) so the
+# rendered ghost sits on the pixels: per-joint angle biases dq plus SE(3)
+# tweaks to joint parent frames. VISUALIZATION ONLY — the real FR3's loose
+# tolerances make logged-q FK miss by a few mm, and these parameters absorb
+# that for rendering; they say nothing about the true kinematics and must
+# never feed planning or IK.
+MODEL_CORRECTION = os.path.join(CALIB_DIR, "model_correction.json")
+
+
+def load_model_correction(path=None):
+    """The committed correction, or an identity no-op if none exists."""
+    p = MODEL_CORRECTION if path is None else path
+    if p and os.path.exists(p):
+        return read_json(p)
+    return {"dq": [0.0] * 7, "frames": {}}
+
+
+def correction_dq(corr):
+    return np.asarray(corr.get("dq", np.zeros(7)), float)
+
+
+def apply_model_correction(plant, context, model, corr):
+    """Apply the frame block of a correction to a plant context.
+
+    Drake wraps every URDF joint's parent attachment in a FixedOffsetFrame
+    whose pose is a *context parameter*, so this works after Finalize().
+    Deltas compose onto the URDF default pose (read from a fresh default
+    context), so re-applying with a different correction never accumulates.
+    The dq block is NOT handled here — add correction_dq(corr) to q at each
+    SetPositions call site.
+    """
+    from pydrake.math import RigidTransform, RollPitchYaw
+    from pydrake.multibody.tree import FixedOffsetFrame
+
+    frames = corr.get("frames") or {}
+    defaults = plant.CreateDefaultContext()
+    # Reset EVERY joint frame to its URDF default first, so switching from
+    # one correction to another (or back to identity) never leaves stale
+    # offsets behind in a reused context.
+    for idx in plant.GetJointIndices(model):
+        fop = plant.get_joint(idx).frame_on_parent()
+        if isinstance(fop, FixedOffsetFrame):
+            fop.SetPoseInParentFrame(
+                context, fop.GetPoseInParentFrame(defaults))
+    for joint_name, d in frames.items():
+        fop = plant.GetJointByName(joint_name, model).frame_on_parent()
+        X0 = fop.GetPoseInParentFrame(defaults)
+        dX = RigidTransform(
+            RollPitchYaw(np.asarray(d.get("rpy", (0, 0, 0)), float)),
+            np.asarray(d.get("xyz", (0, 0, 0)), float))
+        fop.SetPoseInParentFrame(context, X0 @ dX)
+
+
 # ---------------------------------------------------------------- Drake FK --
 
 class ArmKinematics:
@@ -120,7 +174,7 @@ class ArmKinematics:
         "fr3_marker", "fr3_tip",
     ]
 
-    def __init__(self):
+    def __init__(self, correction=None):
         from pydrake.multibody.parsing import Parser
         from pydrake.multibody.plant import MultibodyPlant
 
@@ -134,10 +188,18 @@ class ArmKinematics:
         self.plant.Finalize()
         self.context = self.plant.CreateDefaultContext()
         self.model = model
+        self.set_correction(load_model_correction()
+                            if correction is None else correction)
+
+    def set_correction(self, corr):
+        """Adopt a (viz-only) model correction for all subsequent FK."""
+        self.dq = correction_dq(corr)
+        apply_model_correction(self.plant, self.context, self.model, corr)
 
     def frame_pose(self, frame_name, q):
         """4x4 pose of `frame_name` in world at joint config q (7,)."""
-        self.plant.SetPositions(self.context, self.model, np.asarray(q))
+        self.plant.SetPositions(self.context, self.model,
+                                np.asarray(q) + self.dq)
         frame = self.plant.GetFrameByName(frame_name, self.model)
         X = self.plant.CalcRelativeTransform(
             self.context, self.plant.world_frame(), frame)

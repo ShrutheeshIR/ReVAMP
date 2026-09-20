@@ -92,6 +92,11 @@ class GhostRenderer:
         self.model = model
         self.plant_context = plant.GetMyContextFromRoot(self.context)
 
+        # Viz-only kinematic correction (identity no-op if not yet fitted).
+        corr = common.load_model_correction()
+        self.dq = common.correction_dq(corr)
+        common.apply_model_correction(plant, self.plant_context, model, corr)
+
         js = common.load_joint_states()
         self.qs = common.joint_matrix(js)
         self.t_log = js["t"]
@@ -134,7 +139,7 @@ class GhostRenderer:
         """RGBA sim layer (uint8, h x w x 4) at a video time."""
         from pydrake.math import RigidTransform
         self.plant.SetPositions(self.plant_context, self.model,
-                                self.q_at(t_video))
+                                self.q_at(t_video) + self.dq)
         spheres = self.obstacles_at(t_video) if obstacles else []
         for k, body in enumerate(self.obstacle_bodies):
             pos = (np.array(spheres[k]["position"], float)

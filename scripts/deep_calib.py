@@ -68,6 +68,14 @@ class MeshSilhouette:
         js = common.load_joint_states()
         self.qs = common.joint_matrix(js)
         self.t_log = js["t"]
+        # Committed viz-only kinematic correction (identity if absent), so
+        # camera-only refits inherit it. kin_calib overrides per eval.
+        self.set_correction(common.load_model_correction())
+
+    def set_correction(self, corr):
+        self.dq = common.correction_dq(corr)
+        common.apply_model_correction(
+            self.plant, self.plant_context, self.model, corr)
 
     def q_at(self, t_epoch):
         i = np.clip(np.searchsorted(self.t_log, t_epoch), 1,
@@ -83,7 +91,7 @@ class MeshSilhouette:
         from pydrake.systems.sensors import CameraInfo
 
         self.plant.SetPositions(self.plant_context, self.model,
-                                self.q_at(t_epoch))
+                                self.q_at(t_epoch) + self.dq)
         w, h = common.VIDEO_WH[0] // SCALE, common.VIDEO_WH[1] // SCALE
         info = CameraInfo(w, h, f / SCALE, f / SCALE, cx / SCALE, cy / SCALE)
         cam = ColorRenderCamera(RenderCameraCore(
