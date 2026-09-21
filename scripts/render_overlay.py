@@ -39,12 +39,73 @@ OBSTACLE_FLASH_S = 1.8
 FONT = cv2.FONT_HERSHEY_DUPLEX
 
 # Experimental --tree overlay: the whole RRT-connect explored tree for the
-# active query row (planned_trajectory_info/trees/NNN.npz), very faint so
-# it doesn't compete with the actual trace/plan -- this is for looking at,
-# not part of the settled visualization design.
-TREE_COLOR = (226, 43, 138)    # blue-violet, BGR
-TREE_ALPHA = 0.25
+# active query row (planned_trajectory_info/trees/NNN.npz). A brighter
+# magenta ((255,60,220) @ alpha=0.55/width=3) was tried first and was too
+# loud -- competed with the actual trace/plan instead of sitting behind
+# them. Back to dark/muted (darker than the very first (226,43,138)
+# @0.25/2, not brighter) -- the fix for "hard to see lines" goes to the
+# trace/plan widths below instead, not to making the tree loud.
+TREE_COLOR = (110, 15, 75)    # dark plum, BGR
+TREE_ALPHA = 0.30
 TREE_WIDTH = 2
+
+# Fixed narrative callouts: NOT tied to replan detection at all -- three
+# specific, hand-picked moments (see CALLOUTS below), each slowed to 1x
+# with its own on-screen caption, regardless of what slow_windows()/
+# --speedup would otherwise do. Found by taking the nearest ACTUAL replan
+# (goal-repeat, i.e. the current plan was invalidated -- see
+# slow_windows()'s docstring) to each of Tommy's approximate times
+# (30s/130s/250s), then eyeballing the annotated frame at each to confirm
+# it matches the described moment before committing to the exact time.
+CALLOUTS = [
+    (33.07, "Path blocked by obstacle - replanning"),
+    (149.69, "Obstacle at the elbow - robot uses self-motion to avoid it"),
+    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path"),
+]
+CALLOUT_MARGIN = (0.5, 2.5)   # shown from t-PRE to t+POST
+# Was font scale 0.9 / thickness 2 / tucked 40px from the bottom edge of a
+# 2160-tall 4K frame -- proportionally tiny and easy to miss, per Tommy.
+# Matched to the size the existing "replanned in X ms" panel actually uses
+# at this resolution (scale 2.2, black-outline-then-fill, see line ~389)
+# instead of guessing a scale independently, and moved up off the bottom
+# edge into the lower-THIRD of the frame so it reads as a real caption,
+# not a status-bar afterthought.
+CALLOUT_FONT_SCALE = 2.2
+CALLOUT_THICKNESS = 5
+CALLOUT_OUTLINE_THICKNESS = 11
+CALLOUT_COLOR = (245, 245, 245)          # BGR white
+CALLOUT_BG = (20, 20, 20)
+
+
+def active_callout(t):
+    for ct, text in CALLOUTS:
+        if ct - CALLOUT_MARGIN[0] <= t <= ct + CALLOUT_MARGIN[1]:
+            return text
+    return None
+
+
+def draw_callout(img, text):
+    """Top-right caption bar, solid background, big black-outline-then-
+    white-fill text (same convention as the "replanned in X ms" panel) --
+    was bottom-center, tucked at the very edge and easy to miss; top-right
+    sits at the same height/prominence as that top-LEFT panel instead,
+    the two mirrored across the frame so neither ever overlaps."""
+    h_img, w_img = img.shape[:2]
+    (tw, th), _ = cv2.getTextSize(text, FONT, CALLOUT_FONT_SCALE,
+                                  CALLOUT_THICKNESS)
+    pad = 34
+    margin = 40
+    x1 = w_img - margin
+    x0 = x1 - tw - 2 * pad
+    y0 = margin
+    y1 = y0 + th + 2 * pad
+    cv2.rectangle(img, (x0, y0), (x1, y1), CALLOUT_BG, -1)
+    cv2.rectangle(img, (x0, y0), (x1, y1), CALLOUT_COLOR, 3)
+    tx, ty = (x0 + x1 - tw) // 2, y1 - pad
+    cv2.putText(img, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, (0, 0, 0),
+               CALLOUT_OUTLINE_THICKNESS, cv2.LINE_AA)
+    cv2.putText(img, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, CALLOUT_COLOR,
+               CALLOUT_THICKNESS, cv2.LINE_AA)
 
 # Live-plan overlay (maze_expt_logs trajectories): the remaining portion of
 # the active plan, ahead of the robot, dashed so it reads as intent rather
@@ -54,10 +115,10 @@ PLAN_COLOR = (90, 205, 60)
 PLAN_REFRESH_S = 0.1       # ~10 Hz update tick, per Tommy
 PLAN_ALPHA = 0.75
 PLAN_FLASH_S = 0.6         # full-bright right after a replan lands
-PLAN_WIDTH = 6
+PLAN_WIDTH = 9             # was 6 -- thickened along with the trace bands
 PLAN_SEARCH_AHEAD = 250    # waypoints scanned per tick to advance progress
 PLAN_FULL_ALPHA = 0.35     # faint, so the bright remaining-ahead dash reads
-PLAN_FULL_WIDTH = 2
+PLAN_FULL_WIDTH = 3        # was 2
 
 
 def dashed_polyline(img, uv, color, width, dash=34, gap=22):
@@ -244,10 +305,13 @@ class Overlay:
         age = te - ts
         # Age bands, oldest first so the fresh tail draws on top; each band
         # gets its own alpha so history recedes instead of accumulating.
+        # Widths bumped (5/6/9 -> 7/9/13) per Tommy: the fix for "lines are
+        # hard to see" is making the actual trace/plan thicker, not the
+        # RRT tree brighter (that was tried and reverted -- too loud).
         bands = [
-            (age <= HIST_S) & (age > MID_S), REVAMP_BLUE, 5, 0.30,
-            (age <= MID_S) & (age > TAIL_S), REVAMP_BLUE, 6, 0.55,
-            (age <= TAIL_S), HIGHLIGHT, 9, 0.85,
+            (age <= HIST_S) & (age > MID_S), REVAMP_BLUE, 7, 0.30,
+            (age <= MID_S) & (age > TAIL_S), REVAMP_BLUE, 9, 0.55,
+            (age <= TAIL_S), HIGHLIGHT, 13, 0.85,
         ]
         new = uv[age <= TAIL_S]
         for i in range(0, len(bands), 4):
@@ -576,6 +640,9 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
             img = ghost.composite(img, t, ghost_alpha, obstacles=True,
                                   tint=(203, 160, 141))
         ov.annotate(img, t, obstacle_rings=ghost is None)
+        callout = active_callout(t)
+        if callout:
+            draw_callout(img, callout)
         enc.stdin.write(img.tobytes())
         n_out += 1
         if n % 300 == 0:
@@ -618,6 +685,15 @@ def main():
                          "(pops up a window, y/n) which ones to keep at "
                          "1x, instead of defaulting to all of them -- "
                          "needs a real display, not headless/SSH-only")
+    ap.add_argument("--no-slow", action="store_true",
+                    help="disable the replan slowdown entirely -- play "
+                         "uniformly at --speedup with no 1x windows "
+                         "anywhere (overrides --slow-margin/--ask-slow)")
+    ap.add_argument("--callouts", action="store_true",
+                    help="slow to 1x ONLY at the fixed CALLOUTS moments "
+                         "(each with its own on-screen caption -- see "
+                         "draw_callout()), instead of every replan; "
+                         "overrides --no-slow/--slow-margin/--ask-slow")
     args = ap.parse_args()
 
     ov = Overlay(plan=args.plan, tree=args.tree)
@@ -640,7 +716,12 @@ def main():
             from sim_ghost import GhostRenderer
             ghost = GhostRenderer(with_obstacle_slots=9)
         windows = None
-        if args.speedup > 1 and args.ask_slow:
+        if args.callouts:
+            windows = [(t - CALLOUT_MARGIN[0], t + CALLOUT_MARGIN[1])
+                      for t, _ in CALLOUTS]
+        elif args.no_slow:
+            windows = []
+        elif args.speedup > 1 and args.ask_slow:
             windows = ask_slow_windows(ov, args.segment[0], args.segment[1],
                                        *args.slow_margin)
         name = ("highlight" + ("_plan" if args.plan else "")
