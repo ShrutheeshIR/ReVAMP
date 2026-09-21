@@ -49,47 +49,67 @@ TREE_COLOR = (110, 15, 75)    # dark plum, BGR
 TREE_ALPHA = 0.30
 TREE_WIDTH = 2
 
-# Fixed narrative callouts: NOT tied to replan detection at all -- three
-# specific, hand-picked moments (see CALLOUTS below), each slowed to 1x
-# with its own on-screen caption, regardless of what slow_windows()/
-# --speedup would otherwise do. Found by taking the nearest ACTUAL replan
-# (goal-repeat, i.e. the current plan was invalidated -- see
+# Fixed narrative callouts: NOT tied to replan detection at all -- specific,
+# hand-picked moments (see CALLOUTS below), each frozen with its own
+# on-screen caption, regardless of what slow_windows()/--speedup would
+# otherwise do. The first three were found by taking the nearest ACTUAL
+# replan (goal-repeat, i.e. the current plan was invalidated -- see
 # slow_windows()'s docstring) to each of Tommy's approximate times
 # (30s/130s/250s), then eyeballing the annotated frame at each to confirm
 # it matches the described moment before committing to the exact time.
+#
+# 4th entry (ghost_row set): a genuine "goal blocked" query -- draw_panel()
+# already shows "goal blocked - replanning..." for every unsolved row during
+# ordinary playback, but this one additionally freezes and ghost-renders the
+# planner's own closest-approach-to-goal configuration (from
+# planned_trajectory_info/trees/<row>.npz's closest_to_goal_* keys -- see
+# that directory's README), so the "still couldn't connect" is something you
+# SEE, not just a caption. Picked row 67 out of the 11 unsolved rows that
+# fall inside this 10-300s segment (rows 41-43, 58-65, 67): it has by far the
+# smallest closest_to_goal_distance (0.26 m vs. 0.36-0.74 m for the others)
+# -- the most dramatic "so close, yet still no valid connection" moment, and
+# it doesn't sit within CALLOUT_LEAD_S+CALLOUT_HOLD_S of any other callout.
+GOAL_BLOCKED_ROW = 67
+_gb_tree = np.load(os.path.join(common.TREE_DIR, f"{GOAL_BLOCKED_ROW:03d}.npz"))
+GOAL_BLOCKED_Q = _gb_tree["closest_to_goal_ambient_q"].astype(float)
+GOAL_BLOCKED_DIST_CM = float(_gb_tree["closest_to_goal_distance"]) * 100.0
+
 CALLOUTS = [
-    (33.07, "Path blocked by obstacle - replanning"),
-    (149.69, "Obstacle at the elbow - robot uses self-motion to avoid it"),
-    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path"),
+    (33.07, "Path blocked by obstacle - replanning", None),
+    (149.69, "Obstacle at the elbow - robot uses self-motion to avoid it", None),
+    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path", None),
+    (289.05, f"Goal blocked: closest config (ghost) still "
+             f"{GOAL_BLOCKED_DIST_CM:.0f} cm short of goal",
+     GOAL_BLOCKED_Q),
 ]
-CALLOUT_MARGIN = (0.5, 2.5)   # shown from t-PRE to t+POST
-# Was font scale 0.9 / thickness 2 / tucked 40px from the bottom edge of a
-# 2160-tall 4K frame -- proportionally tiny and easy to miss, per Tommy.
-# Matched to the size the existing "replanned in X ms" panel actually uses
-# at this resolution (scale 2.2, black-outline-then-fill, see line ~389)
-# instead of guessing a scale independently, and moved up off the bottom
-# edge into the lower-THIRD of the frame so it reads as a real caption,
-# not a status-bar afterthought.
-CALLOUT_FONT_SCALE = 2.2
-CALLOUT_THICKNESS = 5
-CALLOUT_OUTLINE_THICKNESS = 11
+# Was a 1x SLOWDOWN window (playing on through at 1x). Per Tommy: freeze
+# the frame outright for CALLOUT_HOLD_S seconds instead -- the moment
+# holds still so the caption is actually readable rather than competing
+# with continued motion -- then resume normal (sped-up) playback from
+# the SAME source instant, not further ahead. See render_segment()'s
+# freeze injection.
+CALLOUT_HOLD_S = 3.0
+# Freeze starts this many seconds BEFORE the exact replan timestamp, not
+# ON it -- per Tommy, all three callouts get a 2s lead-in so the frozen
+# frame shows the moment building up to the event rather than already
+# past it.
+CALLOUT_LEAD_S = 2.0
+CALLOUT_FADE_FRAC = 0.4   # last 40% of the hold fades the caption out
+# Bigger than the first pass (2.2) since it's now a still frame, not
+# competing with motion -- checked the longest of the three CALLOUTS
+# strings still clears the top-left replan panel at this scale.
+CALLOUT_FONT_SCALE = 2.8
+CALLOUT_THICKNESS = 6
+CALLOUT_OUTLINE_THICKNESS = 13
 CALLOUT_COLOR = (245, 245, 245)          # BGR white
 CALLOUT_BG = (20, 20, 20)
 
 
-def active_callout(t):
-    for ct, text in CALLOUTS:
-        if ct - CALLOUT_MARGIN[0] <= t <= ct + CALLOUT_MARGIN[1]:
-            return text
-    return None
-
-
-def draw_callout(img, text):
+def draw_callout(img, text, alpha=1.0):
     """Top-right caption bar, solid background, big black-outline-then-
-    white-fill text (same convention as the "replanned in X ms" panel) --
-    was bottom-center, tucked at the very edge and easy to miss; top-right
-    sits at the same height/prominence as that top-LEFT panel instead,
-    the two mirrored across the frame so neither ever overlaps."""
+    white-fill text (same convention as the "replanned in X ms" panel),
+    alpha-blended onto `img` in place so the hold's last CALLOUT_FADE_FRAC
+    can fade it out smoothly instead of popping off."""
     h_img, w_img = img.shape[:2]
     (tw, th), _ = cv2.getTextSize(text, FONT, CALLOUT_FONT_SCALE,
                                   CALLOUT_THICKNESS)
@@ -99,13 +119,54 @@ def draw_callout(img, text):
     x0 = x1 - tw - 2 * pad
     y0 = margin
     y1 = y0 + th + 2 * pad
-    cv2.rectangle(img, (x0, y0), (x1, y1), CALLOUT_BG, -1)
-    cv2.rectangle(img, (x0, y0), (x1, y1), CALLOUT_COLOR, 3)
+    layer = img.copy()
+    cv2.rectangle(layer, (x0, y0), (x1, y1), CALLOUT_BG, -1)
+    cv2.rectangle(layer, (x0, y0), (x1, y1), CALLOUT_COLOR, 3)
     tx, ty = (x0 + x1 - tw) // 2, y1 - pad
-    cv2.putText(img, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, (0, 0, 0),
+    cv2.putText(layer, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, (0, 0, 0),
                CALLOUT_OUTLINE_THICKNESS, cv2.LINE_AA)
-    cv2.putText(img, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, CALLOUT_COLOR,
+    cv2.putText(layer, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, CALLOUT_COLOR,
                CALLOUT_THICKNESS, cv2.LINE_AA)
+    if alpha >= 1.0:
+        img[:] = layer
+    else:
+        cv2.addWeighted(layer, alpha, img, 1 - alpha, 0, dst=img)
+
+
+def callout_hold_alphas(fps):
+    """Per-frame alpha for one CALLOUT_HOLD_S-second freeze: full opacity
+    for the first (1 - CALLOUT_FADE_FRAC) of it, then a linear fade to 0
+    over the rest, so the caption eases out instead of cutting."""
+    n = max(1, round(CALLOUT_HOLD_S * fps))
+    alphas = []
+    for i in range(n):
+        frac = i / max(1, n - 1)
+        hold_frac = 1.0 - CALLOUT_FADE_FRAC
+        if frac <= hold_frac:
+            alphas.append(1.0)
+        else:
+            alphas.append(max(0.0, 1.0 - (frac - hold_frac) / CALLOUT_FADE_FRAC))
+    return alphas
+
+
+# Playback-speed badge, top-center (top-left is the replan panel, top-right
+# is the callout caption -- center is the one place free in every layout).
+# Shown on every frame so the viewer always knows whether they're looking
+# at real-time or sped-up footage, not just during --callouts.
+SPEED_FONT_SCALE = 1.6
+SPEED_THICKNESS = 4
+SPEED_OUTLINE_THICKNESS = 9
+
+
+def draw_speed_badge(img, speedup):
+    text = f"{speedup}x" if speedup and speedup > 1 else "1x"
+    h_img, w_img = img.shape[:2]
+    (tw, th), _ = cv2.getTextSize(text, FONT, SPEED_FONT_SCALE, SPEED_THICKNESS)
+    tx, ty = (w_img - tw) // 2, 30 + th
+    cv2.putText(img, text, (tx, ty), FONT, SPEED_FONT_SCALE, (0, 0, 0),
+               SPEED_OUTLINE_THICKNESS, cv2.LINE_AA)
+    cv2.putText(img, text, (tx, ty), FONT, SPEED_FONT_SCALE, (245, 245, 245),
+               SPEED_THICKNESS, cv2.LINE_AA)
 
 # Live-plan overlay (maze_expt_logs trajectories): the remaining portion of
 # the active plan, ahead of the robot, dashed so it reads as intent rather
@@ -582,7 +643,7 @@ def ask_slow_windows(ov, t0, t1, margin_pre=1.0, margin_post=1.0):
 
 def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
                    ghost_alpha=0.45, speedup=1, slow_margin=(1.0, 1.0),
-                   windows=None):
+                   windows=None, callouts=None):
     """ghost: optional sim_ghost.GhostRenderer composited (with interpolated
     obstacle bubbles, ReVAMP-blue tint) under the annotations; ring flashes
     are suppressed since the bubbles already show the obstacles.
@@ -597,13 +658,32 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
 
     windows: explicit [(t0,t1), ...] 1x windows (e.g. from
     ask_slow_windows()), overriding the default of every replan. None
-    means "every replan, via slow_windows()"."""
+    means "every replan, via slow_windows()".
+
+    callouts: [(t, text), ...] -- at each one, FREEZE that source frame
+    for CALLOUT_HOLD_S seconds of output (repeating the same annotated
+    image, caption fading out over the back CALLOUT_FADE_FRAC of the
+    hold -- see callout_hold_alphas()), then resume normal playback from
+    that same source instant. This replaced an earlier "slow window"
+    version of callouts (play on at 1x) -- per Tommy, a real freeze reads
+    the caption without competing with continued motion. Independent of
+    `windows`/`slow_margin`, which still drive the ordinary replan
+    slowdown when callouts is None.
+    """
     fps = fps or common.VIDEO_FPS
     w, h = common.VIDEO_WH
     if speedup <= 1:
         windows = []
     elif windows is None:
         windows = slow_windows(ov, *slow_margin)
+    callouts = callouts or []
+    # A callout whose time already passed before this segment even starts
+    # (e.g. rendering a short sub-segment for a preview) must never fire --
+    # otherwise it "catches up" and freezes on frame 1, since t >= ct is
+    # trivially true for the whole segment.
+    callout_done = [ct - CALLOUT_LEAD_S < t0 for ct, _, _ in callouts]
+    hold_alphas = callout_hold_alphas(fps)
+    goal_blocked_ghost = None  # lazily built iff a callout actually needs it
 
     def is_slow(t):
         return any(a <= t <= b for a, b in windows)
@@ -629,6 +709,41 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
             break
         t = t0 + n / fps
         n += 1
+
+        due = next((i for i, ((ct, _, _), done) in
+                    enumerate(zip(callouts, callout_done))
+                    if not done and t >= ct - CALLOUT_LEAD_S), None)
+        if due is not None:
+            callout_done[due] = True
+            _, text, ghost_q = callouts[due]
+            img = np.frombuffer(buf, np.uint8).reshape(h, w, 3).copy()
+            if ghost is not None:
+                img = ghost.composite(img, t, ghost_alpha, obstacles=True,
+                                      tint=(203, 160, 141))
+            if ghost_q is not None:
+                # A second, distinctly-tinted ghost: not the moving
+                # time-indexed one above (that shows the ACTUAL executed
+                # trajectory, if --ghost is even on), but a static render of
+                # a config the robot never reached -- the planner's best
+                # candidate, still short of the goal. Orange tint (vs. the
+                # moving ghost's ReVAMP blue) so the two never read as the
+                # same thing if both happen to be on screen at once.
+                if goal_blocked_ghost is None:
+                    from sim_ghost import GhostRenderer
+                    goal_blocked_ghost = GhostRenderer()
+                img = goal_blocked_ghost.composite_q(
+                    img, ghost_q, alpha=0.55, tint=WARN_ORANGE)
+            ov.annotate(img, t, obstacle_rings=ghost is None)
+            draw_speed_badge(img, 1)   # frozen -- not playing at `speedup` at all
+            for a in hold_alphas:
+                frame = img.copy()
+                draw_callout(frame, text, alpha=a)
+                enc.stdin.write(frame.tobytes())
+                n_out += 1
+            print(f"{n} src frames, {n_out} kept ({t:.1f}s) -- "
+                  f"froze {CALLOUT_HOLD_S:.1f}s for callout: {text!r}")
+            continue
+
         slow = is_slow(t)
         if not slow:
             keep = (fast_i % speedup == 0)
@@ -640,9 +755,7 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
             img = ghost.composite(img, t, ghost_alpha, obstacles=True,
                                   tint=(203, 160, 141))
         ov.annotate(img, t, obstacle_rings=ghost is None)
-        callout = active_callout(t)
-        if callout:
-            draw_callout(img, callout)
+        draw_speed_badge(img, 1 if slow else speedup)
         enc.stdin.write(img.tobytes())
         n_out += 1
         if n % 300 == 0:
@@ -716,9 +829,10 @@ def main():
             from sim_ghost import GhostRenderer
             ghost = GhostRenderer(with_obstacle_slots=9)
         windows = None
+        callouts = None
         if args.callouts:
-            windows = [(t - CALLOUT_MARGIN[0], t + CALLOUT_MARGIN[1])
-                      for t, _ in CALLOUTS]
+            windows = []           # freeze-hold replaces the 1x window now
+            callouts = CALLOUTS
         elif args.no_slow:
             windows = []
         elif args.speedup > 1 and args.ask_slow:
@@ -733,7 +847,7 @@ def main():
                        os.path.join(common.REPO, "out", name),
                        ghost=ghost, ghost_alpha=args.ghost_alpha,
                        speedup=args.speedup, slow_margin=args.slow_margin,
-                       windows=windows)
+                       windows=windows, callouts=callouts)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ SEQUENCE = [
     os.path.join(TITLE_DIR, "title3.mp4"),
     os.path.join(REPO, "bimanual-iiwa", "out", "sidebyside_all_2x.mp4"),
     os.path.join(TITLE_DIR, "title4.mp4"),
-    os.path.join(REPO, "rby1_humanoid", "out", "hw_overlay_side_by_side.mp4"),
+    os.path.join(REPO, "rby1_humanoid", "out", "hw_overlay_point_00.mp4"),
 ]
 
 

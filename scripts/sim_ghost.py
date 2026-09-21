@@ -135,12 +135,15 @@ class GhostRenderer:
         i = np.searchsorted(self.t_belief, te) - 1
         return self.queries[i]["spheres"] if i >= 0 else []
 
-    def render(self, t_video, obstacles=False):
-        """RGBA sim layer (uint8, h x w x 4) at a video time."""
+    def render_q(self, q, spheres=None):
+        """RGBA sim layer (uint8, h x w x 4) at an explicit joint config --
+        the shared path both the time-indexed `render()` (logged q at a
+        video time) and a one-off render at a config that never appeared
+        in the log (e.g. a replay's closest-approach-to-goal config) go
+        through."""
         from pydrake.math import RigidTransform
-        self.plant.SetPositions(self.plant_context, self.model,
-                                self.q_at(t_video) + self.dq)
-        spheres = self.obstacles_at(t_video) if obstacles else []
+        self.plant.SetPositions(self.plant_context, self.model, q + self.dq)
+        spheres = spheres or []
         for k, body in enumerate(self.obstacle_bodies):
             pos = (np.array(spheres[k]["position"], float)
                    if k < len(spheres) else np.array([0, 0, -5.0]))
@@ -150,17 +153,35 @@ class GhostRenderer:
                .Eval(self.context).data.copy())
         return img  # RGBA
 
-    def composite(self, real_bgr, t_video, alpha=0.45, obstacles=False,
-                  tint=None):
-        """tint: optional BGR triple; pushes the sim layer toward that color
-        so the ghost reads against the identical-looking real robot."""
-        rgba = self.render(t_video, obstacles=obstacles)
+    def render(self, t_video, obstacles=False):
+        """RGBA sim layer (uint8, h x w x 4) at a video time."""
+        spheres = self.obstacles_at(t_video) if obstacles else []
+        return self.render_q(self.q_at(t_video), spheres=spheres)
+
+    @staticmethod
+    def _tint_composite(real_bgr, rgba, alpha, tint):
         sim_bgr = rgba[:, :, [2, 1, 0]].astype(np.float32)
         if tint is not None:
             sim_bgr = 0.45 * sim_bgr + 0.55 * np.array(tint, np.float32)
         a = (rgba[:, :, 3:4].astype(np.float32) / 255.0) * alpha
         out = real_bgr.astype(np.float32) * (1 - a) + sim_bgr * a
         return out.astype(np.uint8)
+
+    def composite(self, real_bgr, t_video, alpha=0.45, obstacles=False,
+                  tint=None):
+        """tint: optional BGR triple; pushes the sim layer toward that color
+        so the ghost reads against the identical-looking real robot."""
+        rgba = self.render(t_video, obstacles=obstacles)
+        return self._tint_composite(real_bgr, rgba, alpha, tint)
+
+    def composite_q(self, real_bgr, q, alpha=0.45, spheres=None, tint=None):
+        """Same as `composite()`, but at an explicit joint config instead of
+        one looked up from the logged trajectory by time -- for showing a
+        configuration that was only ever a planner candidate (e.g. an
+        unsolved query's closest-approach-to-goal state), not something the
+        real robot ever reached."""
+        rgba = self.render_q(q, spheres=spheres)
+        return self._tint_composite(real_bgr, rgba, alpha, tint)
 
 
 def main():

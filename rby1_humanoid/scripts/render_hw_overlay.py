@@ -78,10 +78,23 @@ def _com_support_polygon_residuals(com_xy, base_xyt):
     return np.array(residuals)
 
 # Fitted to these two 2026-08-28 clips (see side_by_side.py's docstring for
-# the envelope check) -- NOT rby1-constrained-planning/scripts/video's
-# HW_CROP, which is tuned to a different, earlier camera setup.
+# the envelope check) -- the original narrow 900x980 half-panel crop, tuned
+# so two runs could sit side by side. A wider 16:9 crop (either the full
+# native frame, or a zoomed-in-but-still-16:9 crop) put too much lab clutter
+# (desks, chairs, cabinets) in frame -- the robot's own vertical motion
+# envelope forces a crop wide enough that peripheral furniture can't be
+# excluded while staying 16:9 landscape. So instead: keep this tight
+# original crop's aspect ratio as-is (no distortion), scale it to fill the
+# OUTPUT height, and pad the leftover width as a solid black banner on
+# either side (video the other side) -- which is also where the caption
+# text and running plots now live, off the video entirely instead of
+# overlaid on it. Side is chosen per render_one() call (--banner-side);
+# only these sizes are fixed.
 CROP_W, CROP_H = 900, 980
 CROP_X, CROP_Y = 560, 80
+OUT_W, OUT_H = 1920, 1080
+SCALED_W = int(round(CROP_W * OUT_H / CROP_H / 2)) * 2  # even, ~992
+PAD_X = OUT_W - SCALED_W  # banner width, ~928
 
 HW_VIDEO = {
     "point_00": "20260828_142748.mp4",
@@ -107,6 +120,24 @@ GRAY = (200, 200, 200)
 WARN_ORANGE = (209, 143, 0)
 HIGHLIGHT = (65, 105, 225)
 ERROR_WARN_MM = 3.0   # real controller tracking error; see module docstring
+
+MARGIN_SAFE_COLOR = (120, 220, 120)
+MARGIN_INSIDE_SAFETY_COLOR = WARN_ORANGE
+MARGIN_OUTSIDE_COLOR = (235, 80, 80)
+
+
+def margin_color_fn(margin_mm):
+    """Same red/orange/green thresholds the CoM-margin readout always used
+    for its single current-value number, now also driving the whole running
+    plot's line color -- per Tommy, the trend of "how close to the safety
+    boundary has this run been" should read at a glance, not just the
+    instantaneous value."""
+    if margin_mm < 0:
+        return MARGIN_OUTSIDE_COLOR
+    elif margin_mm < DEFAULT_SUPPORT_POLYGON_INSET * 1000.0:
+        return MARGIN_INSIDE_SAFETY_COLOR
+    else:
+        return MARGIN_SAFE_COLOR
 
 # Fitted real camera (position+focal from
 # rby1-constrained-planning/notes/camera_fit_from_logs.md, orientation
@@ -234,6 +265,110 @@ def draw_boxed_lines(img, lines, anchor_xy, align="top-left", pad=12,
     return Image.alpha_composite(base, overlay).convert("RGB")
 
 
+def draw_running_plot(img, rect, title, xs, ys, y_lo, y_hi, cur_t, color,
+                      font_title, font_val, val_fmt="{:+.1f}",
+                      color_fn=None, legend=None):
+    """Draw a small time-series line plot (axis box + zero-line + line +
+    a cursor dot/readout at the current time) into `rect` = (x0, y0, x1, y1)
+    on `img` (RGB). `xs`/`ys` are the (already downsampled) series; NaN `ys`
+    breaks the line, matching how the constraint-error plot is undefined
+    before grasp / after release. Replaces the plain numeric readouts this
+    panel used to show -- per Tommy, a running plot reads the *trend*
+    (approaching a limit, holding steady) at a glance where a bare number
+    doesn't. `rect` is the full allotted area; the plot box itself is inset
+    from it to leave room for y-axis value ticks (left) and x-axis time
+    ticks (bottom).
+
+    `color_fn(v) -> (r,g,b)`, if given, colors the line/cursor/value-text
+    per sample instead of the flat `color` -- used for the CoM margin plot,
+    where per Tommy the whole trace should read green/orange/red against
+    the same safe / inside-safety-margin / outside-polygon thresholds the
+    single current-value number used to show. `legend`: optional
+    [(label, (r,g,b)), ...] swatch list drawn inside the box when
+    `color_fn` is used, since the color now carries meaning that needs a
+    key."""
+    x0, y0, x1, y1 = rect
+    LEFT_PAD, TOP_PAD, BOTTOM_PAD = 100, 12, 28
+    bx0, by0, bx1, by1 = x0 + LEFT_PAD, y0 + TOP_PAD, x1, y1 - BOTTOM_PAD
+    w, h = bx1 - bx0, by1 - by0
+    base = img.convert("RGBA")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    def to_px(t, v):
+        x = bx0 + (t - xs[0]) / (xs[-1] - xs[0]) * w
+        y = by1 - (v - y_lo) / (y_hi - y_lo) * h
+        return (x, min(max(y, by0), by1))
+
+    draw.rectangle([bx0, by0, bx1, by1], outline=(90, 90, 90, 255), width=1)
+    N_GRID = 4
+    for k in range(1, N_GRID):
+        gy = by0 + h * k / N_GRID
+        draw.line([(bx0, gy), (bx1, gy)], fill=(55, 55, 55, 255), width=1)
+        gx = bx0 + w * k / N_GRID
+        draw.line([(gx, by0), (gx, by1)], fill=(55, 55, 55, 255), width=1)
+    if y_lo < 0 < y_hi:
+        zy = to_px(xs[0], 0.0)[1]
+        draw.line([(bx0, zy), (bx1, zy)], fill=(120, 120, 120, 220), width=1)
+        draw.text((bx0 - 8, zy), "0", fill=(*GRAY, 255), font=font_val, anchor="rm")
+    draw.text((bx0 - 8, by0), val_fmt.format(y_hi), fill=(*GRAY, 255),
+              font=font_val, anchor="rm")
+    draw.text((bx0 - 8, by1), val_fmt.format(y_lo), fill=(*GRAY, 255),
+              font=font_val, anchor="rm")
+    draw.text((bx0, by1 + 6), "0s", fill=(*GRAY, 255), font=font_val, anchor="la")
+    draw.text((bx1, by1 + 6), f"{xs[-1] - xs[0]:.0f}s", fill=(*GRAY, 255),
+              font=font_val, anchor="ra")
+
+    # Segment-by-segment (not one big polyline) so color_fn can vary the
+    # color along the line's own length when given -- a flat `color`
+    # degenerates to the same per-segment call every time, so one code path
+    # covers both.
+    prev_px = None
+    cur_px = None
+    for t, v in zip(xs, ys):
+        if t > cur_t:
+            break
+        if v != v:  # NaN
+            prev_px = None
+            continue
+        px = to_px(t, v)
+        seg_color = color_fn(v) if color_fn else color
+        if prev_px is not None:
+            draw.line([prev_px, px], fill=(*seg_color, 255), width=3)
+        prev_px = px
+        cur_px = px
+    if cur_px is not None:
+        idx0 = min(np.searchsorted(xs, cur_t), len(ys) - 1)
+        cur_color = color_fn(ys[idx0]) if color_fn else color
+        r = 6
+        draw.ellipse([cur_px[0] - r, cur_px[1] - r, cur_px[0] + r, cur_px[1] + r],
+                     fill=(*cur_color, 255))
+
+    if legend:
+        sw = 22
+        lx = bx0 + 10
+        ly = by1 - 8 - len(legend) * (sw + 8) + 8  # stack up from the
+        # bottom-left corner, not the top -- the data in practice sits
+        # elevated near the top of this particular plot (CoM margin stays
+        # "safe" most of the run), so a top-left legend collided with the
+        # line itself; near-zero at the bottom is comparatively empty.
+        for label, lcolor in legend:
+            draw.rectangle([lx, ly, lx + sw, ly + sw], fill=(*lcolor, 255))
+            draw.text((lx + sw + 8, ly + sw // 2), label, fill=(*GRAY, 255),
+                      font=font_val, anchor="lm")
+            ly += sw + 8
+
+    out = Image.alpha_composite(base, overlay).convert("RGB")
+    d2 = ImageDraw.Draw(out)
+    idx = min(np.searchsorted(xs, cur_t), len(ys) - 1)
+    cur_v = ys[idx]
+    val_text = val_fmt.format(cur_v) if cur_v == cur_v else "--"
+    val_color = color_fn(cur_v) if (color_fn and cur_v == cur_v) else color
+    d2.text((x0, y0 - 40), title, fill=WHITE, font=font_title)
+    d2.text((x1, y0 - 40), val_text, fill=val_color, font=font_val, anchor="ra")
+    return out
+
+
 STEP_LABELS = {
     "premove": "premove",
     "reach_approach": "reach (approach)",
@@ -247,7 +382,11 @@ STEP_LABELS = {
 }
 
 
-def render_one(name, out_path, pad_s=0.6, duration_s=None):
+def render_one(name, out_path, pad_s=0.6, duration_s=None, banner_side="right"):
+    if banner_side == "right":
+        VIDEO_X0, BANNER_X0, BANNER_X1 = 0, SCALED_W, OUT_W
+    else:
+        VIDEO_X0, BANNER_X0, BANNER_X1 = PAD_X, 0, PAD_X
     rec = common.load_record(name)
     t_log, q_log = common.load_states(rec)
     with open(PLAN_CACHE[name], "rb") as f:
@@ -291,6 +430,55 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None):
     X_ref = left_right_transform(common.q_at(t_log, q_log, lift_t_start))
     CONSTRAINED_STEPS = {"grasp", "lift", "place", "release"}
 
+    # Full-resolution series behind the three running plots (below), then
+    # downsampled -- redrawing thousands of raw log samples with PIL every
+    # output frame is too slow and adds nothing visually over ~240 points.
+    margin_full = np.array([stability_margin_mm(qs) for qs in q_log])
+    constrained_mask = np.array([common.step_at(rec, ts) in CONSTRAINED_STEPS for ts in t_log])
+    R_ref = X_ref.rotation().matrix()
+    pos_err_full = np.full(len(t_log), np.nan)
+    ori_err_full = np.full(len(t_log), np.nan)
+    for i in np.nonzero(constrained_mask)[0]:
+        X = left_right_transform(q_log[i])
+        pos_err_full[i] = float(np.linalg.norm(X.translation() - X_ref.translation()) * 1000.0)
+        # Angle (deg) of the relative rotation between the current and
+        # reference left-to-right transforms -- same convention as the
+        # position error, just for orientation instead of translation.
+        R_rel = R_ref.T @ X.rotation().matrix()
+        cos_ang = np.clip((np.trace(R_rel) - 1.0) / 2.0, -1.0, 1.0)
+        ori_err_full[i] = float(np.degrees(np.arccos(cos_ang)))
+
+    def _downsample_windowed(full):
+        """Interpolate `full` (NaN outside CONSTRAINED_STEPS) onto plot_t,
+        only inside the constrained window, so the plotted line doesn't
+        bridge the gap either side of grasp/release."""
+        out = np.full(PLOT_N, np.nan)
+        if constrained_mask.any():
+            lo_t, hi_t = t_log[constrained_mask][0], t_log[constrained_mask][-1]
+            in_window = (plot_t >= lo_t) & (plot_t <= hi_t)
+            out[in_window] = np.interp(
+                plot_t[in_window], t_log[constrained_mask], full[constrained_mask])
+        return out
+
+    PLOT_N = 240
+    plot_t = np.linspace(t_log[0], t_log[-1], PLOT_N)
+    plot_margin = np.interp(plot_t, t_log, margin_full)
+    plot_pos_err = _downsample_windowed(pos_err_full)
+    plot_ori_err = _downsample_windowed(ori_err_full)
+
+    MARGIN_Y_HI = max(float(np.nanmax(margin_full)) * 1.15, 50.0)
+    MARGIN_Y_LO = min(float(np.nanmin(margin_full)) * 1.15, 0.0)
+    # No large fixed floor on these two (there used to be one, 5.0/2.0) --
+    # per Tommy, a floor that big made the actual trace read as a flat tiny
+    # sliver whenever the real error stayed small (which is the common
+    # case, since these are both errors we want to be small). Scale to
+    # this run's own min/max instead, with just a small margin so the
+    # cursor dot isn't flush against the top edge.
+    POS_ERR_Y_HI = (max(float(np.nanmax(pos_err_full[constrained_mask])) * 1.15, 1e-3)
+                   if constrained_mask.any() else 1.0)
+    ORI_ERR_Y_HI = (max(float(np.nanmax(ori_err_full[constrained_mask])) * 1.15, 1e-3)
+                   if constrained_mask.any() else 1.0)
+
     # EE trace (see CAMERA_FIT/TRACE_SPEC docstrings): left/right arms
     # (orange, resolved) plus the midpoint (blue, parameterized) -- same
     # convention as bimanual-iiwa's DualFollower. Precompute once, over the
@@ -308,13 +496,19 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None):
         cx_cam, cy_cam = fit["principal_point"]
         dt_cam = fit["dt_s"]
 
+        scale_x, scale_y = SCALED_W / CROP_W, OUT_H / CROP_H
+
         def project(p_W):
             p_C = R_cam.T @ (p_W - eye_cam)
             if p_C[2] <= 0.05:
                 return None
             u = cx_cam + f_cam * p_C[0] / p_C[2]
             v = cy_cam + f_cam * p_C[1] / p_C[2]
-            return (u - CROP_X, v - CROP_Y)   # into the cropped-frame pixels
+            # Into the crop, scaled up the same as the crop->output ffmpeg
+            # filter scales the pixels, then shifted by VIDEO_X0 -- 0 if the
+            # video sits flush left (banner on the right), or the banner's
+            # own width if the video is pushed right instead.
+            return ((u - CROP_X) * scale_x + VIDEO_X0, (v - CROP_Y) * scale_y)
 
         left_pts_world, right_pts_world, mid_pts_world = [], [], []
         for q_sample in q_log:
@@ -363,23 +557,26 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None):
         "ffmpeg", "-loglevel", "error",
         "-ss", f"{max(0.0, start_s):.3f}", "-i", video_path,
         "-t", f"{dur:.3f}",
-        "-vf", f"crop={CROP_W}:{CROP_H}:{CROP_X}:{CROP_Y},fps={FPS_OUT}",
+        "-vf", f"crop={CROP_W}:{CROP_H}:{CROP_X}:{CROP_Y},"
+              f"scale={SCALED_W}:{OUT_H},"
+              f"pad={OUT_W}:{OUT_H}:{VIDEO_X0}:0:black,fps={FPS_OUT}",
         "-f", "rawvideo", "-pix_fmt", "rgb24", "pipe:1",
     ]
     src = subprocess.Popen(decode_cmd, stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
-    frame_bytes = CROP_W * CROP_H * 3
+    frame_bytes = OUT_W * OUT_H * 3
 
     try:
         font = ImageFont.truetype(FONT_PATH, 30)
         font_small = ImageFont.truetype(FONT_PATH_REG, 26)
+        font_plot = ImageFont.truetype(FONT_PATH_REG, 24)
     except OSError:
-        font = font_small = ImageFont.load_default()
+        font = font_small = font_plot = ImageFont.load_default()
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     ffmpeg_cmd = [
         "ffmpeg", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24",
-        "-s", f"{CROP_W}x{CROP_H}", "-r", str(FPS_OUT), "-i", "pipe:0",
+        "-s", f"{OUT_W}x{OUT_H}", "-r", str(FPS_OUT), "-i", "pipe:0",
         "-c:v", "libx264", "-crf", "18", "-preset", "fast",
         "-pix_fmt", "yuv420p", "-an", out_path,
     ]
@@ -395,7 +592,7 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None):
         raw = src.stdout.read(frame_bytes)
         if len(raw) < frame_bytes:
             break
-        frame_rgb = np.frombuffer(raw, np.uint8).reshape(CROP_H, CROP_W, 3)
+        frame_rgb = np.frombuffer(raw, np.uint8).reshape(OUT_H, OUT_W, 3)
 
         t_log_query = min(max(t + t_clip0, t_log[0]), t_log[-1])
         q = common.q_at(t_log, q_log, t_log_query)
@@ -418,38 +615,50 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None):
             img = draw_traces(img, TRACE_SPEC, pts2d_by_key, t_log, t_proj,
                               progress_idx, plan_end_idx)
 
-        if raw_step in CONSTRAINED_STEPS:
-            X = left_right_transform(q)
-            err_mm = float(np.linalg.norm(X.translation() - X_ref.translation()) * 1000.0)
-            err_color = WARN_ORANGE if err_mm > ERROR_WARN_MM else GRAY
-            err_line = f"constraint error (bimanual) {err_mm:.2f} mm"
-        else:
-            err_color = GRAY
-            err_line = "constraint error (bimanual): not yet grasped"
+        margin_color = margin_color_fn(margin_mm)
+        pos_err_color = WARN_ORANGE
+        ori_err_color = (90, 190, 230)
 
-        # Stability status: CoM's margin to the support-polygon boundary.
-        # Negative = CoM has crossed the boundary (tip risk). Below
-        # DEFAULT_SUPPORT_POLYGON_INSET (the planner's own conservative
-        # rear-edge margin, 82.3 mm) but still positive = inside the true
-        # polygon but inside the planner's own safety buffer.
-        if margin_mm < 0:
-            margin_color, margin_note = (235, 80, 80), "OUTSIDE polygon"
-        elif margin_mm < DEFAULT_SUPPORT_POLYGON_INSET * 1000.0:
-            margin_color, margin_note = WARN_ORANGE, "inside safety margin"
-        else:
-            margin_color, margin_note = (120, 220, 120), "safe"
-
-        # One panel, top-left, translucent -- see draw_boxed_lines' docstring:
-        # both bottom corners get covered by the robot's own hands/box at the
-        # crouched grasp pose (~t=21-22s), hiding the actual pick-up.
+        # Captions now live in the solid black banner to the video's right
+        # (PAD_X wide), not overlaid on the footage -- no translucent box
+        # needed since the banner is already opaque black.
         img = draw_boxed_lines(img, [
             (INSTANCE_LABEL.get(name, name), font, HIGHLIGHT),
             (f"step: {step}   t = {elapsed:.2f} s", font_small, WHITE),
             (f"planning time {plan_wall_s * 1000:.0f} ms", font_small, GRAY),
-            (err_line, font_small, err_color),
-            ("CoM margin to support polygon:", font_small, GRAY),
-            (f"  {margin_mm:+.1f} mm ({margin_note})", font_small, margin_color),
-        ], (20, 20), align="top-left")
+        ], (BANNER_X0 + 20, 20), align="top-left", box_fill=(0, 0, 0, 0), box_outline=None)
+
+        # Running plots (in place of the old bare numeric readouts) -- a
+        # trend (approaching a limit, holding steady) reads faster than a
+        # single changing number, and shows the whole run's shape, not just
+        # the instant. Position and orientation error are two genuinely
+        # different failure modes (a translational drift vs. a tilted box),
+        # so they get their own plots rather than being folded into one.
+        img = draw_running_plot(
+            img, (BANNER_X0 + 20, 225, BANNER_X1 - 20, 405),
+            "bimanual position error, mm", plot_t, plot_pos_err,
+            0.0, POS_ERR_Y_HI, t_log_query, pos_err_color, font_small, font_plot)
+        img = draw_running_plot(
+            img, (BANNER_X0 + 20, 475, BANNER_X1 - 20, 655),
+            "bimanual orientation error, deg", plot_t, plot_ori_err,
+            0.0, ORI_ERR_Y_HI, t_log_query, ori_err_color, font_small, font_plot)
+        img = draw_running_plot(
+            img, (BANNER_X0 + 20, 725, BANNER_X1 - 20, 905),
+            "CoM margin to support polygon, mm", plot_t, plot_margin,
+            MARGIN_Y_LO, MARGIN_Y_HI, t_log_query, margin_color, font_small, font_plot,
+            color_fn=margin_color_fn, legend=[
+                ("safe", MARGIN_SAFE_COLOR),
+                ("safe, close to limit", MARGIN_INSIDE_SAFETY_COLOR),
+                ("unsafe (outside polygon)", MARGIN_OUTSIDE_COLOR),
+            ])
+
+        # Static "1x" -- this is real hardware footage played back at its
+        # own logged rate, never sped up, but per Tommy every video in the
+        # final assembly should say its playback speed explicitly. Placed at
+        # the banner's own bottom-left, clear of the video entirely.
+        img = draw_boxed_lines(img, [("1x", font_small, WHITE)],
+                               (BANNER_X0 + 20, OUT_H - 20), align="bottom-left",
+                               box_fill=(0, 0, 0, 0), box_outline=None)
 
         pipe.stdin.write(np.array(img).tobytes())
         if i % 90 == 0:
@@ -472,14 +681,16 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--duration", type=float, default=None,
                     help="render only N seconds (for a quick test)")
+    ap.add_argument("--banner-side", choices=["left", "right"], default="right")
     args = ap.parse_args()
 
     names = list(common.RECORDS) if args.all else ([args.name] if args.name else None)
     if not names:
         sys.exit("give NAME (point_00 / point_01), or --all")
     for n in names:
-        out_path = os.path.join(common.OUT_DIR, f"hw_overlay_{n}.mp4")
-        render_one(n, out_path, duration_s=args.duration)
+        suffix = "" if args.banner_side == "right" else "_bannerleft"
+        out_path = os.path.join(common.OUT_DIR, f"hw_overlay_{n}{suffix}.mp4")
+        render_one(n, out_path, duration_s=args.duration, banner_side=args.banner_side)
 
 
 if __name__ == "__main__":

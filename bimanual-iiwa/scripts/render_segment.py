@@ -46,6 +46,11 @@ TEXT_X = (WIDTH - 960) // 2 + 30
 # push them down below it (+90, banner height + a small margin) so the
 # method-name title doesn't render underneath and become illegible.
 TEXT_Y_OFFSET = 90
+# Same crop-survival logic as TEXT_X, but for the right edge of the kept
+# window -- a badge anchored at the true WIDTH-20 fell inside the
+# cropped-away region and vanished in the side-by-side, same failure as
+# TEXT_X's old placement.
+BADGE_X = (WIDTH - 960) // 2 + 960 - 30
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FONT_PATH_REG = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 HEAD_HOLD_S = 0.5
@@ -69,12 +74,16 @@ ORBIT_ELEV_DEG = 22.0
 # "end" is the mirror image of "start" about the image's vertical axis --
 # azimuth reflected about the scene's own left/right symmetry axis (the
 # two arms sit symmetric about this ORBIT_CENTER's y), which is the same
-# axis at both 0 and 180 deg. -160/-240 (20 deg out from -180 on each
-# side) is that mirror pair. Still routed through -180, not through 0:
+# axis at both 0 and 180 deg. Still routed through -180, not through 0:
 # azimuth near -10/+20 swings the shelf's solid back panel between camera
 # and the arms, blocking everything.
-ORBIT_AZ_START_DEG = -160.0
-ORBIT_AZ_END_DEG = -240.0   # == +120 mod 360, mirror of -160 about -180
+# Was -160/-240 (80 deg total sweep) -- too aggressive per Tommy, cut in
+# half (40 deg total, same -200 midpoint) to -180/-220. Since the sweep
+# interpolates over the SAME number of frames either way, halving the
+# angular range also halves the apparent rotation speed for free -- no
+# separate slow-down needed.
+ORBIT_AZ_START_DEG = -180.0
+ORBIT_AZ_END_DEG = -220.0
 
 
 def camera_pose(frac):
@@ -182,6 +191,38 @@ def draw_traces(img, spec, full_pts, progress_idx, X_WC, fx, fy, cx, cy):
         pts2d = [_project(X_CW, fx, fy, cx, cy, p) for p in pts_w]
         _draw_solid(draw, pts2d[:progress_idx + 1], color)
     return composited
+
+
+def draw_boxed_lines(img, lines, anchor_xy, align="top-left", pad=12, line_gap=8,
+                     box_fill=(0, 0, 0, 165), box_outline=(120, 120, 120, 255)):
+    """Alpha-composite a translucent background box behind `lines` (each
+    (text, font, color)), sized from the actual text extents and anchored
+    at the frame corner `align` names. Same convention as rby1_humanoid's
+    render_hw_overlay.py -- ported here since the wood/metal background
+    made plain draw.text illegible, same complaint that motivated it
+    there. Returns the new image (`img` itself is unchanged)."""
+    base = img.convert("RGBA")
+    overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    sizes = [draw.textbbox((0, 0), text, font=font) for text, font, _ in lines]
+    widths = [b[2] - b[0] for b in sizes]
+    heights = [b[3] - b[1] for b in sizes]
+    box_w = max(widths) + 2 * pad
+    box_h = sum(heights) + line_gap * (len(lines) - 1) + 2 * pad
+
+    ax, ay = anchor_xy
+    x0 = ax - box_w if "right" in align else ax
+    y0 = ay - box_h if "bottom" in align else ay
+    x1, y1 = x0 + box_w, y0 + box_h
+    draw.rectangle([x0, y0, x1, y1], fill=box_fill, outline=box_outline, width=1)
+
+    y = y0 + pad
+    for (text, font, color), h, b in zip(lines, heights, sizes):
+        draw.text((x0 + pad - b[0], y - b[1]), text, fill=(*color, 255), font=font)
+        y += h + line_gap
+
+    return Image.alpha_composite(base, overlay).convert("RGB")
 
 
 def _look_at(eye, target, up=np.array([0.0, 0.0, 1.0])):
@@ -296,13 +337,22 @@ def render_one(method, segment, out_path, speed=1.0):
 
         img = Image.fromarray(arr)
         img = draw_traces(img, trace_spec, full_pts, progress_idx, X_WC, fx, fy, cx, cy)
-        draw = ImageDraw.Draw(img)
-        draw.text((TEXT_X, 30 + TEXT_Y_OFFSET), method, fill=HIGHLIGHT, font=font)
-        draw.text((TEXT_X, 90 + TEXT_Y_OFFSET), segment_label, fill=WHITE, font=font_small)
-        draw.text((TEXT_X, 126 + TEXT_Y_OFFSET), f"planning time {d['planning_time_s'] * 1000:.2f} ms",
-                 fill=GRAY, font=font_small)
-        draw.text((TEXT_X, 156 + TEXT_Y_OFFSET), f"constraint error {err_mm:.3f} mm",
-                 fill=err_color, font=font_small)
+        img = draw_boxed_lines(img, [
+            (method, font, HIGHLIGHT),
+            (segment_label, font_small, WHITE),
+            (f"planning time {d['planning_time_s'] * 1000:.2f} ms", font_small, GRAY),
+            (f"constraint error {err_mm:.3f} mm", font_small, err_color),
+        ], (TEXT_X, TEXT_Y_OFFSET))
+        # Playback-speed badge, top-right, at TEXT_Y_OFFSET (below the
+        # side-by-side's legend banner, same reasoning as the caption box
+        # above) -- placing it at the true top (y=20) put it right under
+        # the banner's own title text, which is opaque there and hid it.
+        # These renders always play at `speed` (default 1x, no
+        # fast-forward), but per Tommy every video in the final assembly
+        # should say so explicitly, not just the ones (maze) that actually
+        # vary.
+        img = draw_boxed_lines(img, [(f"{speed:g}x", font_small, WHITE)],
+                               (BADGE_X, TEXT_Y_OFFSET), align="top-right")
         pipe.stdin.write(np.array(img).tobytes())
         if i % 60 == 0:
             print(f"  frame {i}/{len(frames)}")
