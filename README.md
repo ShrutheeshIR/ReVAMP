@@ -6,6 +6,63 @@ camera (intrinsics + extrinsics + clock offset) against ground-truth robot
 pose from the logs, then renders overlay variants (executed-path trace,
 replan panel, sim ghost, live plan) on the raw phone footage.
 
+## Full end-to-end final video
+
+`out/revamp_final.mp4` is the complete assembled deliverable: title cards →
+maze → title card → bimanual-iiwa → title card → RBY1, each transition a
+fade in/out title slide. It stitches together **three independently-built
+pieces**, each documented in its own project:
+
+1. **The maze clip** (this directory, below) — a `render_overlay.py`
+   `--segment` render, e.g. the current one:
+   ```
+   python3 scripts/render_overlay.py --segment 15.0 380.0 --plan --tree --speedup 4
+   ```
+2. **The bimanual-iiwa sim clip** — see
+   [`bimanual-iiwa/README.md`](bimanual-iiwa/README.md) for the full
+   from-scratch pipeline (textures → 12 segment renders → side-by-side →
+   concat → 2x speed). Final input: `bimanual-iiwa/out/sidebyside_all_2x.mp4`.
+3. **The RBY1 real-hardware clip** — see
+   [`rby1_humanoid/README.md`](rby1_humanoid/README.md) for the full
+   from-scratch pipeline (camera fit → hardware overlay renders →
+   side-by-side + banner). Final input: `rby1_humanoid/out/hw_overlay_side_by_side.mp4`.
+
+Once all three inputs exist, generate the title cards and assemble:
+
+```bash
+PY=/home/olorin/projects/PVAMP/rby1-constrained-planning/.venv/bin/python
+cd /home/olorin/projects/PVAMP/revamp-video
+
+mkdir -p scratch/title_cards scratch/title_clips
+$PY scripts/make_title_card.py scratch/title_cards/title1.png \
+  "ReVAMP: Vector-Accelerated Motion Planning" \
+  "for Kinematically-Constrained Systems via Reparameterization" --font-size 56
+$PY scripts/make_title_card.py scratch/title_cards/title2.png \
+  "Solving a maze real-time with z-plane constraint" \
+  "with dynamic obstacles" --font-size 60
+$PY scripts/make_title_card.py scratch/title_cards/title3.png \
+  "Bimanual Constraint for a 14-DoF KUKA Iiwa" \
+  "Fixed relative transform between two arms" --font-size 60
+$PY scripts/make_title_card.py scratch/title_cards/title4.png \
+  "RB-Y1 Whole-Body Constrained-Transport Task for Pick and Place" --font-size 56
+
+for i in 1 2 3 4; do
+  ffmpeg -y -loop 1 -i scratch/title_cards/title$i.png -t 4 \
+    -vf "fade=t=in:st=0:d=0.8,fade=t=out:st=3.2:d=0.8,fps=30" \
+    -c:v libx264 -crf 18 -preset fast -pix_fmt yuv420p scratch/title_clips/title$i.mp4
+done
+
+$PY scripts/build_final_video.py    # -> out/revamp_final.mp4
+```
+
+`build_final_video.py` (see its docstring) normalizes every input
+(scale+pad+setsar+fps) before a `filter_complex concat` — the maze clip is
+4K/~60fps while the title cards and the other two clips are already
+1080p/30fps, so this can't use the plain concat demuxer. The `SEQUENCE` list
+at the top of that script is the single source of truth for which file plays
+where; edit it directly (not this README) if the assembly order or inputs
+change.
+
 ## Prerequisites (things NOT in this repo)
 
 1. **The source video** — `shru_revamp_vid_hanlanphone-001.MOV` (~2.3 GB,
@@ -64,6 +121,28 @@ touch calib/*.json
 Then `build_video.py` runs only the mesh-conversion and render stages.
 Delete files in `calib/` (or use `--force-from`) if you actually want to
 re-derive the calibration from the video.
+
+### Ad-hoc renders (bypassing build_video.py)
+
+`render_overlay.py` can be run directly for a custom segment/flag
+combination instead of going through a pipeline stage, e.g. to render
+almost the whole video with the live plan and the RRT-connect explored
+tree overlaid:
+
+```
+python3 scripts/render_overlay.py --segment 5.0 450.0 --plan --tree --no-skeleton
+```
+
+With `--speedup N`, everything plays at Nx **except** within
+`--slow-margin PRE POST` seconds (default `1.0 1.0`) of a **replan** —
+kept at 1x. "Replan" here means specifically a query issued because the
+*current plan was invalidated* (an obstacle blocked it) — a query whose
+`goal_eef_pos` repeats the previous query's goal. A query with a NEW goal
+(the robot reached its old goal and is being handed the next leg of the
+task) gets no slowdown window; nothing failed there, so there's nothing to
+call attention to. See `slow_windows()`'s docstring for why `goal_eef_pos`
+comparison is what encodes this — `planning_queries.jsonl` has no explicit
+`reason`/`goal_reached` field.
 
 ## Data
 

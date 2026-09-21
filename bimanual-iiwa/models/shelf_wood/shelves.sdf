@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!-- Local textured replacement for rby1-constrained-planning's old_shelves.sdf
+     (plain untextured boxes) -- same 3 box sizes/poses (2 shelf boards +
+     back panel), but each is a UV-mapped mesh referencing a real plywood
+     photo (shelf_1.obj/shelf_2.obj/shelf_back.obj, see make_textured_box.py)
+     instead of an SDF <box> primitive, since Drake's SDFormat parser has no
+     texture support for primitive geometry (confirmed empirically -- a
+     <material><pbr> block on a <box> is parsed and then silently dropped).
+     Collision boxes are unchanged (never rendered, and no reason to touch
+     them). -->
+<sdf version="1.7">
+  <model name="old_shelves">
+    <link name="base">
+      <inertial>
+        <mass>1</mass>
+        <inertia>
+          <ixx>1</ixx><ixy>0</ixy><ixz>0</ixz>
+          <iyy>1</iyy><iyz>0</iyz><izz>1</izz>
+        </inertia>
+      </inertial>
+
+      <visual name="shelf_1_visual">
+        <pose>0 0 0.3 0 0 0</pose>
+        <geometry><mesh><uri>shelf_1.obj</uri></mesh></geometry>
+      </visual>
+      <visual name="shelf_2_visual">
+        <pose>0 0 0.6 0 0 0</pose>
+        <geometry><mesh><uri>shelf_2.obj</uri></mesh></geometry>
+      </visual>
+      <visual name="back_visual">
+        <pose>0.2 0 0.45 0 0 0</pose>
+        <geometry><mesh><uri>shelf_back.obj</uri></mesh></geometry>
+      </visual>
+
+      <collision name="shelf_1_collision">
+        <pose>0 0 0.3 0 0 0</pose>
+        <geometry><box><size>0.4 1.0 0.014</size></box></geometry>
+      </collision>
+      <collision name="shelf_2_collision">
+        <pose>0 0 0.6 0 0 0</pose>
+        <geometry><box><size>0.4 1.0 0.014</size></box></geometry>
+      </collision>
+      <collision name="back_collision">
+        <pose>0.2 0 0.45 0 0 0</pose>
+        <geometry><box><size>0.03 1.0 0.9</size></box></geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
