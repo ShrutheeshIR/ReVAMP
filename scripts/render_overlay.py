@@ -465,13 +465,85 @@ def montage(ov, times, out_path, skeleton=True):
     print(out_path)
 
 
+def slow_windows(ov, margin_pre=1.0, margin_post=1.0):
+    """[(t0,t1), ...] video-time windows to keep at 1x around a REPLAN --
+    a query issued because the current plan became invalid (an obstacle
+    blocked it), not because the robot reached its goal and is being
+    handed the next one. There's no explicit reason/goal_reached field in
+    planning_queries.jsonl, but goal_eef_pos is: a query whose goal matches
+    the previous query's goal is a retry against the same still-unreached
+    goal (a real replan); a query with a NEW goal is just the next leg of
+    the task and was never sped up because anything failed, so it gets no
+    slowdown window. Per Tommy: only slow down for actual replanning, and
+    only 1s on either side (was 2s)."""
+    q_video_t = ov.q_t - ov.v0 + ov.delta
+    windows = []
+    prev_goal = None
+    for t, q in zip(q_video_t, ov.queries):
+        goal = q.get("goal_eef_pos")
+        if prev_goal is not None and goal == prev_goal:
+            windows.append((t - margin_pre, t + margin_post))
+        prev_goal = goal
+    return windows
+
+
+def ask_slow_windows(ov, t0, t1, margin_pre=1.0, margin_post=1.0):
+    """Interactive, optional alternative to slow_windows(): pops up a
+    window per replan inside [t0,t1] with that frame annotated, and asks
+    y/n whether to keep it at 1x. Requires a real display (cv2.imshow) --
+    not for headless/SSH-only sessions. [q] stops asking and keeps
+    whatever was already confirmed; anything not explicitly confirmed
+    stays at full speedup."""
+    q_video_t = ov.q_t - ov.v0 + ov.delta
+    in_range = [(i, t) for i, t in enumerate(q_video_t) if t0 <= t <= t1]
+    windows = []
+    for i, t in in_range:
+        img = ov.annotate(grab_bgr(t), t, skeleton=False)
+        disp = cv2.resize(img, (960, 540))
+        cv2.putText(disp, f"replan #{i + 1}  t={t:.1f}s  --  keep at 1x?  "
+                          "[y]es  [n]o  [q]uit asking",
+                   (20, 40), FONT, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.imshow("confirm slow-down (any other key = no)", disp)
+        key = cv2.waitKey(0) & 0xFF
+        if key == ord('q'):
+            break
+        if key in (ord('y'), ord(' ')):
+            windows.append((t - margin_pre, t + margin_post))
+            print(f"  replan #{i + 1} (t={t:.1f}s): kept at 1x")
+        else:
+            print(f"  replan #{i + 1} (t={t:.1f}s): left sped up")
+    cv2.destroyAllWindows()
+    return windows
+
+
 def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
-                   ghost_alpha=0.45):
+                   ghost_alpha=0.45, speedup=1, slow_margin=(1.0, 1.0),
+                   windows=None):
     """ghost: optional sim_ghost.GhostRenderer composited (with interpolated
     obstacle bubbles, ReVAMP-blue tint) under the annotations; ring flashes
-    are suppressed since the bubbles already show the obstacles."""
+    are suppressed since the bubbles already show the obstacles.
+
+    speedup > 1: keep every frame within `slow_margin` seconds of any
+    replan (1x there), otherwise keep only 1 in `speedup` frames. Dropped
+    frames are never decoded into an annotated image at all (skip the
+    expensive per-frame overlay work, not just the encode), so this cuts
+    render time roughly in proportion to how much of the segment ends up
+    fast. Output stays at the source fps -- dropping frames rather than
+    re-timestamping is what makes the fast stretches play sped-up.
+
+    windows: explicit [(t0,t1), ...] 1x windows (e.g. from
+    ask_slow_windows()), overriding the default of every replan. None
+    means "every replan, via slow_windows()"."""
     fps = fps or common.VIDEO_FPS
     w, h = common.VIDEO_WH
+    if speedup <= 1:
+        windows = []
+    elif windows is None:
+        windows = slow_windows(ov, *slow_margin)
+
+    def is_slow(t):
+        return any(a <= t <= b for a, b in windows)
+
     dec = subprocess.Popen(
         ["ffmpeg", "-loglevel", "error", "-ss", str(t0), "-to", str(t1),
          "-i", common.VIDEO, "-pix_fmt", "bgr24", "-f", "rawvideo", "-"],
@@ -483,28 +555,37 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
          "-c:v", "libx264", "-preset", "medium", "-crf", "18",
          "-pix_fmt", "yuv420p", "-movflags", "+faststart", out_path],
         stdin=subprocess.PIPE)
-    n = 0
+    n = 0            # decoded (source) frame count
+    n_out = 0         # encoded (output) frame count
+    fast_i = 0        # decimation phase, advanced only on fast frames
     nbytes = w * h * 3
     while True:
         buf = dec.stdout.read(nbytes)
         if len(buf) < nbytes:
             break
-        img = np.frombuffer(buf, np.uint8).reshape(h, w, 3).copy()
         t = t0 + n / fps
+        n += 1
+        slow = is_slow(t)
+        if not slow:
+            keep = (fast_i % speedup == 0)
+            fast_i += 1
+            if not keep:
+                continue
+        img = np.frombuffer(buf, np.uint8).reshape(h, w, 3).copy()
         if ghost is not None:
             img = ghost.composite(img, t, ghost_alpha, obstacles=True,
                                   tint=(203, 160, 141))
         ov.annotate(img, t, obstacle_rings=ghost is None)
         enc.stdin.write(img.tobytes())
-        n += 1
+        n_out += 1
         if n % 300 == 0:
-            print(f"{n} frames ({t0 + n / fps:.1f}s)")
+            print(f"{n} src frames, {n_out} kept ({t:.1f}s)")
     dec.wait()
     enc.stdin.close()
     enc.wait()
     if enc.returncode != 0:
         sys.exit("encoder failed")
-    print(f"{n} frames -> {out_path}")
+    print(f"{n} src frames -> {n_out} kept -> {out_path}")
 
 
 def main():
@@ -523,6 +604,20 @@ def main():
     ap.add_argument("--tree", action="store_true",
                     help="experimental: draw the whole RRT-connect "
                          "explored tree for the active query, very faint")
+    ap.add_argument("--speedup", type=int, default=1,
+                    help="play this many x faster everywhere except "
+                         "within --slow-margin seconds of a replan, kept "
+                         "at 1x; dropped frames also skip the (expensive) "
+                         "overlay work entirely, so render time drops too")
+    ap.add_argument("--slow-margin", type=float, nargs=2, default=(1.0, 1.0),
+                    metavar=("PRE", "POST"),
+                    help="seconds before/after each replan kept at 1x "
+                         "(only relevant with --speedup > 1)")
+    ap.add_argument("--ask-slow", action="store_true",
+                    help="optional: interactively confirm per-replan "
+                         "(pops up a window, y/n) which ones to keep at "
+                         "1x, instead of defaulting to all of them -- "
+                         "needs a real display, not headless/SSH-only")
     args = ap.parse_args()
 
     ov = Overlay(plan=args.plan, tree=args.tree)
@@ -544,12 +639,20 @@ def main():
         if args.ghost:
             from sim_ghost import GhostRenderer
             ghost = GhostRenderer(with_obstacle_slots=9)
+        windows = None
+        if args.speedup > 1 and args.ask_slow:
+            windows = ask_slow_windows(ov, args.segment[0], args.segment[1],
+                                       *args.slow_margin)
         name = ("highlight" + ("_plan" if args.plan else "")
                 + ("_ghost" if args.ghost else "")
-                + ("_tree" if args.tree else "") + "_4k.mp4")
+                + ("_tree" if args.tree else "")
+                + (f"_{args.speedup}x" if args.speedup > 1 else "")
+                + "_4k.mp4")
         render_segment(ov, args.segment[0], args.segment[1],
                        os.path.join(common.REPO, "out", name),
-                       ghost=ghost, ghost_alpha=args.ghost_alpha)
+                       ghost=ghost, ghost_alpha=args.ghost_alpha,
+                       speedup=args.speedup, slow_margin=args.slow_margin,
+                       windows=windows)
 
 
 if __name__ == "__main__":
