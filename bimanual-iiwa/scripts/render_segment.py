@@ -201,7 +201,19 @@ def reference_transform(plant, plant_ctx):
     return common.gripper_transform(plant, plant_ctx, d["configs"][0])
 
 
+SHELF_LEVEL_NAME = {"T": "Top", "B": "Bottom", "M": "Middle"}
+
+
+def segment_label_for(segment):
+    """"T->B" -> "Top -> Bottom" -- spelled out the same way rby1_humanoid's
+    hw_overlay uses a bold "Point 00"/"Point 01" label, so a segment's own
+    video is identifiable at a glance instead of just by filename."""
+    a, b = segment.split("->")
+    return f"{SHELF_LEVEL_NAME[a]} -> {SHELF_LEVEL_NAME[b]}"
+
+
 def render_one(method, segment, out_path, speed=1.0):
+    segment_label = segment_label_for(segment)
     plant, sg, diagram = common.build_scene()
     if not sg.HasRenderer(RENDERER):
         # True-black background. `exposure` brightens the robot/table/
@@ -286,9 +298,10 @@ def render_one(method, segment, out_path, speed=1.0):
         img = draw_traces(img, trace_spec, full_pts, progress_idx, X_WC, fx, fy, cx, cy)
         draw = ImageDraw.Draw(img)
         draw.text((TEXT_X, 30 + TEXT_Y_OFFSET), method, fill=HIGHLIGHT, font=font)
-        draw.text((TEXT_X, 96 + TEXT_Y_OFFSET), f"planning time {d['planning_time_s'] * 1000:.2f} ms",
+        draw.text((TEXT_X, 90 + TEXT_Y_OFFSET), segment_label, fill=WHITE, font=font_small)
+        draw.text((TEXT_X, 126 + TEXT_Y_OFFSET), f"planning time {d['planning_time_s'] * 1000:.2f} ms",
                  fill=GRAY, font=font_small)
-        draw.text((TEXT_X, 126 + TEXT_Y_OFFSET), f"constraint error {err_mm:.3f} mm",
+        draw.text((TEXT_X, 156 + TEXT_Y_OFFSET), f"constraint error {err_mm:.3f} mm",
                  fill=err_color, font=font_small)
         pipe.stdin.write(np.array(img).tobytes())
         if i % 60 == 0:
