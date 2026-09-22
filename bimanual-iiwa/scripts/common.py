@@ -71,6 +71,7 @@ def build_scene():
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, 0.0)
     parser = Parser(plant)
     parser.package_map().AddPackageXml(os.path.join(RBY1_REPO, "package.xml"))
+    parser.package_map().AddPackageXml(os.path.join(REPO, "package.xml"))
     directives = LoadModelDirectives(DIRECTIVES)
     ProcessModelDirectives(directives, parser)
     plant.Finalize()
