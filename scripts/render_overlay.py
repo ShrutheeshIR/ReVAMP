@@ -175,12 +175,21 @@ def draw_callout(img, text, alpha=1.0):
 # shadow, which is what made both an eyeballed trace and a darkest-run
 # fit drift left.
 WAND_REPAINT_4K = {
-    "segments": [
-        {"polyline": [(1765, 0), (1610, 240), (1425, 492), (1265, 680),
-                      (1110, 850)], "width": 135},
-        {"polyline": [(1110, 850), (985, 1010), (860, 1350), (615, 1740),
-                      (390, 2100)], "width": 210},
-    ],
+    # Stick edges as x = m*y + c in 4K pixels, valid for y in [0, ~1250].
+    # These are TOMMY'S OWN red annotation lines (screenshot 2026-09-21
+    # 22-51), registered into 4K coordinates via the mid marker ball and
+    # the callout arrow tip (uniform scale 1.82); the registration checks
+    # out independently -- the midline extrapolates to (948, 1160), and
+    # the measured tape-wrap center is (942, 1160). Every hand/auto trace
+    # before this drifted, because the stick's own shadow band on the
+    # curtain reads as an extension of the stick.
+    "edges": {"left": (-0.7754, 1762.6), "right": (-0.6916, 1834.7),
+              "y_max": 1250, "margin": 8},
+    # Below y_max there is no ghost to occlude (the ghost's lowest pixel
+    # is ~y=1100) -- a generous corridor down the remaining shaft just
+    # repaints real over real.
+    "tail": {"polyline": [(947, 1160), (756, 1420), (551, 1700),
+                          (258, 2100)], "width": 210},
     # (x, y, r, kind) search regions; only pixels matching each feature's
     # own color test inside the circle are repainted, so the circles can
     # be generous without cutting a halo of ghost around the feature.
@@ -200,9 +209,16 @@ def wand_repaint_mask(real_bgr):
     of the wrong part of the ghost."""
     h, w = real_bgr.shape[:2]
     mask = np.zeros((h, w), np.uint8)
-    for seg in WAND_REPAINT_4K["segments"]:
-        pts = np.array(seg["polyline"], np.int32)
-        cv2.polylines(mask, [pts], False, 255, seg["width"], cv2.LINE_AA)
+    e = WAND_REPAINT_4K["edges"]
+    (ml, cl), (mr, cr) = e["left"], e["right"]
+    ys = np.arange(0, e["y_max"] + 1, 50)
+    left = [(ml * y + cl - e["margin"], y) for y in ys]
+    right = [(mr * y + cr + e["margin"], y) for y in ys[::-1]]
+    cv2.fillPoly(mask, [np.array(left + right, np.int32)], 255,
+                 cv2.LINE_AA)
+    tail = WAND_REPAINT_4K["tail"]
+    cv2.polylines(mask, [np.array(tail["polyline"], np.int32)], False, 255,
+                  tail["width"], cv2.LINE_AA)
     hsv = cv2.cvtColor(real_bgr, cv2.COLOR_BGR2HSV)
     H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
     SELECTORS = {
