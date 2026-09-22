@@ -107,8 +107,8 @@ INSTANCE_LABEL = {
     "point_01": "Point 01",
 }
 PLAN_CACHE = {
-    "point_00": "/home/olorin/projects/PVAMP/rby1-constrained-planning/plans/grid_cache/point_00.pkl",
-    "point_01": "/home/olorin/projects/PVAMP/rby1-constrained-planning/plans/grid_cache/point_01.pkl",
+    "point_00": os.path.join(common.RBY1_REPO, "plans/grid_cache/point_00.pkl"),
+    "point_01": os.path.join(common.RBY1_REPO, "plans/grid_cache/point_01.pkl"),
 }
 
 FPS_OUT = 30
@@ -382,6 +382,20 @@ STEP_LABELS = {
 }
 
 
+class _StubUnpickler(pickle.Unpickler):
+    """Unpickle grid_cache plan pickles without the planner's own modules
+    installed (rby1_interface etc. live in rby1-constrained-planning's
+    venv, not necessarily this one). Only meta["wall_s"] -- a plain float
+    in a plain dict -- is read from these, so any class that fails to
+    import is stubbed rather than reconstructed faithfully."""
+
+    def find_class(self, module, name):
+        try:
+            return super().find_class(module, name)
+        except (ImportError, AttributeError):
+            return type(name, (), {"__setstate__": lambda self, state: None})
+
+
 def render_one(name, out_path, pad_s=0.6, duration_s=None, banner_side="right"):
     if banner_side == "right":
         VIDEO_X0, BANNER_X0, BANNER_X1 = 0, SCALED_W, OUT_W
@@ -390,7 +404,7 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None, banner_side="right"):
     rec = common.load_record(name)
     t_log, q_log = common.load_states(rec)
     with open(PLAN_CACHE[name], "rb") as f:
-        plan_wall_s = pickle.load(f)["meta"]["wall_s"]
+        plan_wall_s = _StubUnpickler(f).load()["meta"]["wall_s"]
 
     plant, sg, diagram = common.build_scene()
     context = diagram.CreateDefaultContext()

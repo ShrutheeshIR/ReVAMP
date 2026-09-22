@@ -87,7 +87,8 @@ $PY scripts/render_segment.py DualFollower "T->B"      # quote the arrow, or the
 
 Each render is 1920x1080/30fps, true-black background, an orbiting camera
 (`ORBIT_CENTER=[0.5,0.4,0.45]`, `ORBIT_RADIUS=2.4`, `ORBIT_ELEV_DEG=22`,
-azimuth sweeping `-160°→-240°`, a mirror pair around the scene's own -180°
+azimuth sweeping `-180°→-220°` (was `-160°→-240°`; halved per Tommy —
+"a bit is okay to show depth", 80° was too much), a mirror pair around the scene's own -180°
 symmetry axis — routed through -180 rather than 0 because azimuth near
 -10°/+20° swings the shelf's solid back panel between camera and arms), with:
 
@@ -139,25 +140,24 @@ resolved (orange) — this has to be regenerated (and `render_segment.py`
 re-run, since the caption's `TEXT_Y_OFFSET` assumes a banner height) if you
 move the banner or change its height.
 
-### 3. Concatenate all 6 + speed up 2x
+### 3. Concatenate both segments + speed up 2x
 
 ```bash
 cd out
 cat > concat_list.txt << 'EOF'
 file 'sidebyside_T_to_B.mp4'
 file 'sidebyside_B_to_M.mp4'
-file 'sidebyside_M_to_B.mp4'
-file 'sidebyside_M_to_T.mp4'
-file 'sidebyside_T_to_M.mp4'
-file 'sidebyside_B_to_T.mp4'
 EOF
 ffmpeg -y -f concat -safe 0 -i concat_list.txt -c copy sidebyside_all.mp4
 ffmpeg -y -i sidebyside_all.mp4 -filter:v "setpts=0.5*PTS" -r 30 \
   -c:v libx264 -crf 20 -preset fast -pix_fmt yuv420p sidebyside_all_2x.mp4
 ```
 
-`sidebyside_all_2x.mp4` is the final deliverable used in the top-level
-`revamp-video/scripts/build_final_video.py` assembly.
+`sidebyside_all_2x.mp4` (two segments — T→B, B→M — each retimed ~3x
+slower in sim, then played back at 2x, with the camera orbit split
+across the two clips for continuity at the cut) is the final deliverable
+used in the top-level `revamp-video/scripts/build_final_video.py`
+assembly.
 
 ## Gotchas or previously-wrong-decisions worth not repeating
 

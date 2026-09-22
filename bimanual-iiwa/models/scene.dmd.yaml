@@ -69,7 +69,7 @@ directives:
 # Add table (LOCAL textured brushed-metal slab, not rby1-constrained-planning's own)
 - add_model:
     name: table
-    file: file:///home/olorin/projects/PVAMP/revamp-video/bimanual-iiwa/models/table_metal/table.sdf
+    file: package://bimanual_iiwa_media/models/table_metal/table.sdf
 
 - add_frame:
     name: table_origin
@@ -85,7 +85,7 @@ directives:
 # Mug Rack (LOCAL textured plywood variant)
 - add_model:
     name: old_shelves
-    file: file:///home/olorin/projects/PVAMP/revamp-video/bimanual-iiwa/models/shelf_wood/shelves.sdf
+    file: package://bimanual_iiwa_media/models/shelf_wood/shelves.sdf
 
 - add_frame:
     name: shelves_origin

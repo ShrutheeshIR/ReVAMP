@@ -12,7 +12,15 @@ import os
 
 import numpy as np
 
-RBY1_REPO = "/home/olorin/projects/PVAMP/rby1-constrained-planning"
+# Sibling planner/model repo. Resolution order: $RBY1_REPO env var, then
+# the first known checkout location that actually exists on this machine.
+_RBY1_CANDIDATES = [
+    "/home/olorin/projects/PVAMP/rby1-constrained-planning",
+    os.path.expanduser("~/Documents/programming/work/rlg/"
+                       "minimal-coordinates/ift/rby1-constrained-planning"),
+]
+RBY1_REPO = os.environ.get("RBY1_REPO") or next(
+    (p for p in _RBY1_CANDIDATES if os.path.isdir(p)), _RBY1_CANDIDATES[0])
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Local copy of old_shelves.dmd.yaml (not iiwa_bimanual_table_only.dmd.yaml
 # -- T/B/M are the shelf's Top/Bottom/Middle levels, so the shelf has to be
@@ -67,6 +75,7 @@ def build_scene():
     plant, scene_graph = AddMultibodyPlantSceneGraph(builder, 0.0)
     parser = Parser(plant)
     parser.package_map().AddPackageXml(os.path.join(RBY1_REPO, "package.xml"))
+    parser.package_map().AddPackageXml(os.path.join(REPO, "package.xml"))
     directives = LoadModelDirectives(DIRECTIVES)
     ProcessModelDirectives(directives, parser)
     plant.Finalize()
