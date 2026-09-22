@@ -107,8 +107,8 @@ INSTANCE_LABEL = {
     "point_01": "Point 01",
 }
 PLAN_CACHE = {
-    "point_00": "/home/olorin/projects/PVAMP/rby1-constrained-planning/plans/grid_cache/point_00.pkl",
-    "point_01": "/home/olorin/projects/PVAMP/rby1-constrained-planning/plans/grid_cache/point_01.pkl",
+    "point_00": os.path.join(common.RBY1_REPO, "plans/grid_cache/point_00.pkl"),
+    "point_01": os.path.join(common.RBY1_REPO, "plans/grid_cache/point_01.pkl"),
 }
 
 FPS_OUT = 30
