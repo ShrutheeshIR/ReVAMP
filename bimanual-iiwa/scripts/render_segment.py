@@ -80,16 +80,36 @@ ORBIT_ELEV_DEG = 22.0
 # Was -160/-240 (80 deg total sweep) -- too aggressive per Tommy, cut in
 # half (40 deg total, same -200 midpoint) to -180/-220. Since the sweep
 # interpolates over the SAME number of frames either way, halving the
-# angular range also halves the apparent rotation speed for free -- no
+# angular range also halved the apparent rotation speed for free -- no
 # separate slow-down needed.
+#
+# Now split across the 2 kept segments (T->B, B->M) instead of each one
+# separately sweeping the full -180..-220 range: per Tommy, the two clips
+# play back to back in the final cut, so a camera that resets to the same
+# start angle at the cut reads as a jump. Each segment now covers only
+# HALF of the old range and the two join continuously through the -200
+# midpoint (T->B: -220 -> -200, B->M: -200 -> -180) -- "moving from -X to
+# 0, then 0 to +X" across the pair. Combined with retiming at DEFAULT_SPEED
+# (1/3, i.e. 3x slower -- see render_one), the same camera_pose(frac) math
+# over 3x more frames makes the sweep 3x slower again on top of that, with
+# no separate angular change needed for the "slower" part.
 ORBIT_AZ_START_DEG = -180.0
 ORBIT_AZ_END_DEG = -220.0
+ORBIT_AZ_MID_DEG = -200.0
+SEGMENT_ORBIT_RANGE = {
+    "T->B": (ORBIT_AZ_END_DEG, ORBIT_AZ_MID_DEG),
+    "B->M": (ORBIT_AZ_MID_DEG, ORBIT_AZ_START_DEG),
+}
+# "Much slower" per Tommy -- 1/3 of the TOPPRA-optimal rate everywhere this
+# project renders now (see common.retime_configs' speed param: <1 stretches
+# the timing, so 1/3 means 3x the duration for the same path).
+DEFAULT_SPEED = 1.0 / 3.0
 
 
-def camera_pose(frac):
-    """frac in [0,1] -> X_WC, sweeping azimuth around ORBIT_CENTER."""
-    az = np.radians(ORBIT_AZ_START_DEG
-                    + frac * (ORBIT_AZ_END_DEG - ORBIT_AZ_START_DEG))
+def camera_pose(frac, az_start=ORBIT_AZ_START_DEG, az_end=ORBIT_AZ_END_DEG):
+    """frac in [0,1] -> X_WC, sweeping azimuth around ORBIT_CENTER from
+    az_start to az_end (per-segment range -- see SEGMENT_ORBIT_RANGE)."""
+    az = np.radians(az_start + frac * (az_end - az_start))
     el = np.radians(ORBIT_ELEV_DEG)
     eye = ORBIT_CENTER + ORBIT_RADIUS * np.array(
         [np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)])
@@ -253,8 +273,10 @@ def segment_label_for(segment):
     return f"{SHELF_LEVEL_NAME[a]} -> {SHELF_LEVEL_NAME[b]}"
 
 
-def render_one(method, segment, out_path, speed=1.0):
+def render_one(method, segment, out_path, speed=DEFAULT_SPEED):
     segment_label = segment_label_for(segment)
+    az_start, az_end = SEGMENT_ORBIT_RANGE.get(
+        segment, (ORBIT_AZ_START_DEG, ORBIT_AZ_END_DEG))
     plant, sg, diagram = common.build_scene()
     if not sg.HasRenderer(RENDERER):
         # True-black background. `exposure` brightens the robot/table/
@@ -323,7 +345,7 @@ def render_one(method, segment, out_path, speed=1.0):
     n_frames = len(frames)
     for i, q in enumerate(frames):
         plant.SetPositions(plant_ctx, q)
-        X_WC = camera_pose(i / max(1, n_frames - 1))
+        X_WC = camera_pose(i / max(1, n_frames - 1), az_start, az_end)
         qobj = sg.get_query_output_port().Eval(sg_ctx)
         color_image = qobj.RenderColorImage(camera, sg.world_frame_id(), X_WC)
         arr = np.asarray(color_image.data).reshape(HEIGHT, WIDTH, 4)[:, :, :3].copy()
@@ -347,11 +369,13 @@ def render_one(method, segment, out_path, speed=1.0):
         # side-by-side's legend banner, same reasoning as the caption box
         # above) -- placing it at the true top (y=20) put it right under
         # the banner's own title text, which is opaque there and hid it.
-        # These renders always play at `speed` (default 1x, no
-        # fast-forward), but per Tommy every video in the final assembly
-        # should say so explicitly, not just the ones (maze) that actually
-        # vary.
-        img = draw_boxed_lines(img, [(f"{speed:g}x", font_small, WHITE)],
+        # Always "1x": `speed` retimes the SIMULATED motion itself (how
+        # fast the arms move in the scene), it isn't a post-hoc playback
+        # multiplier -- the rendered clip always plays out at its own
+        # native fps with no frame drop/duplicate speedup, unlike the
+        # maze's --speedup. Per Tommy, every video in the final assembly
+        # should still say its playback speed explicitly.
+        img = draw_boxed_lines(img, [("1x", font_small, WHITE)],
                                (BADGE_X, TEXT_Y_OFFSET), align="top-right")
         pipe.stdin.write(np.array(img).tobytes())
         if i % 60 == 0:
@@ -369,7 +393,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("method", nargs="?", choices=common.METHODS)
     ap.add_argument("segment", nargs="?", choices=common.SEGMENTS)
-    ap.add_argument("--speed", type=float, default=1.0)
+    ap.add_argument("--speed", type=float, default=DEFAULT_SPEED)
     ap.add_argument("--all", action="store_true")
     args = ap.parse_args()
 

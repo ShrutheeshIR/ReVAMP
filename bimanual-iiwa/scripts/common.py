@@ -26,7 +26,11 @@ SCRATCH = os.path.join(REPO, "scratch")
 OUT_DIR = os.path.join(REPO, "out")
 
 METHODS = ["DualFollower", "LeaderFollower"]
-SEGMENTS = ["T->B", "B->M", "M->B", "M->T", "T->M", "B->T"]
+# Was all 6 shelf-to-shelf legs; per Tommy, the final cut only uses these 2
+# (T->B, B->M) -- fewer, slower clips read better than six quick ones. The
+# other 4 segment JSONs/trajectories are untouched in case they're wanted
+# again later, just not rendered by --all anymore.
+SEGMENTS = ["T->B", "B->M"]
 
 
 def traj_path(method, segment):

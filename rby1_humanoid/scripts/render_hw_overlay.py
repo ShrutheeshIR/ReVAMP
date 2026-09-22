@@ -621,10 +621,11 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None, banner_side="right"):
 
         # Captions now live in the solid black banner to the video's right
         # (PAD_X wide), not overlaid on the footage -- no translucent box
-        # needed since the banner is already opaque black.
+        # needed since the banner is already opaque black. No per-instance
+        # "Point 00"/"Point 01" title line here -- the final assembly's own
+        # title card already names this section, so it was redundant.
         img = draw_boxed_lines(img, [
-            (INSTANCE_LABEL.get(name, name), font, HIGHLIGHT),
-            (f"step: {step}   t = {elapsed:.2f} s", font_small, WHITE),
+            (f"step: {step}   t = {elapsed:.2f} s", font, WHITE),
             (f"planning time {plan_wall_s * 1000:.0f} ms", font_small, GRAY),
         ], (BANNER_X0 + 20, 20), align="top-left", box_fill=(0, 0, 0, 0), box_outline=None)
 

@@ -74,14 +74,37 @@ _gb_tree = np.load(os.path.join(common.TREE_DIR, f"{GOAL_BLOCKED_ROW:03d}.npz"))
 GOAL_BLOCKED_Q = _gb_tree["closest_to_goal_ambient_q"].astype(float)
 GOAL_BLOCKED_DIST_CM = float(_gb_tree["closest_to_goal_distance"]) * 100.0
 
-CALLOUTS = [
-    (33.07, "Path blocked by obstacle - replanning", None),
-    (149.69, "Obstacle at the elbow - robot uses self-motion to avoid it", None),
-    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path", None),
-    (289.05, f"Goal blocked: closest config (ghost) still "
-             f"{GOAL_BLOCKED_DIST_CM:.0f} cm short of goal",
-     GOAL_BLOCKED_Q),
-]
+# Each entry: (t, text, ghost_q, arrow) -- arrow is ((tx, ty), (dx, dy)):
+# a big on-screen arrow whose TIP is at 4K pixel (tx, ty) and whose tail
+# sits at (tx+dx, ty+dy), drawn only during the freeze (same fade as the
+# caption). Per Tommy: a frozen frame alone doesn't tell the viewer WHERE
+# to look -- point at the part of interest outright. Coordinates are
+# hand-picked off each callout's own frozen frame (stable, since the
+# freeze pins an exact source frame).
+#
+# Times: each callout time is chosen so the FREEZE (at t - CALLOUT_LEAD_S)
+# lands just AFTER its replan has fired -- panel showing the replan's
+# stats, the NEW plan drawn, the obstacle in place -- matched frame-by-
+# frame against Tommy's two reference screenshots (2026-09-21):
+#   1st: freeze 34.8, right after the 409 ms / 85,917-iteration replan at
+#        33.07 (row 5) -- hand releasing the just-placed piece. (A freeze
+#        BEFORE the replan, mid-placement, showed a moment where nothing
+#        was blocked yet -- rejected twice.)
+#   2nd: freeze 240.79, right after the 14.1 ms / 4,543-iteration replan
+#        at 232.74 (row 44) -- immediately following a blocked cluster
+#        (rows 41-43, all unsolved), so this is the "forced significant
+#        reconfiguration" replan that got the plan moving again. First
+#        moved (was 248.2, off the 145 ms/37,128-iteration replan at
+#        246.80, row 49) per Shrutheesh: in the assembled 4x video this
+#        callout landed at 1:11, 4s later than the intended 1:07 -- that
+#        pass landed it at 236.0 (1:07 exactly). Then nudged +1.2s later
+#        again per Shrutheesh, to 240.79 (1:08.2). (An "obstacle at the
+#        elbow" callout at 213.82 sat between the 1st and this one and
+#        was dropped per Tommy.)
+#
+# Arrow targets point at the CAUSE -- the obstacle (the placed piece, the
+# marker spheres on the stick) -- not at the robot part it affects
+# (per Tommy).
 # Was a 1x SLOWDOWN window (playing on through at 1x). Per Tommy: freeze
 # the frame outright for CALLOUT_HOLD_S seconds instead -- the moment
 # holds still so the caption is actually readable rather than competing
@@ -92,8 +115,29 @@ CALLOUT_HOLD_S = 3.0
 # Freeze starts this many seconds BEFORE the exact replan timestamp, not
 # ON it -- per Tommy, all three callouts get a 2s lead-in so the frozen
 # frame shows the moment building up to the event rather than already
-# past it.
+# past it. Defined here (not after CALLOUTS) since the goal-blocked
+# callout's own time below is expressed in terms of it.
 CALLOUT_LEAD_S = 2.0
+
+CALLOUTS = [
+    (36.8, "Path blocked by obstacle - replanning", None,
+     ((1710, 1235), (-520, 420))),
+    (240.79, "Elbow obstacle forces significant reconfiguration and a new maze path",
+     None, ((1373, 380), (450, 500))),
+    # row 67's own query lands at t_video=289.0538 and stays active only
+    # until row 68 supersedes it at 289.6751 (solved). A callout time of
+    # exactly 289.05 -CALLOUT_LEAD_S freezes at 287.05, while row 66 (the
+    # previous, SOLVED query) is still active -- panel reads "replanned in
+    # X ms" while the ghost shows the blocked config, disagreeing with the
+    # caption. Setting this callout's own time to row 67's time +
+    # CALLOUT_LEAD_S cancels the lead-in out algebraically, so the freeze
+    # lands at 289.0538 (comfortably inside row 67's ~0.62s active window)
+    # and the panel already reads "goal blocked - replanning..." the
+    # instant the ghost appears.
+    (289.0538 + CALLOUT_LEAD_S, f"Goal blocked: closest config (ghost) still "
+                                f"{GOAL_BLOCKED_DIST_CM:.0f} cm short of goal",
+     GOAL_BLOCKED_Q, ((1150, 950), (560, 440))),
+]
 CALLOUT_FADE_FRAC = 0.4   # last 40% of the hold fades the caption out
 # Bigger than the first pass (2.2) since it's now a still frame, not
 # competing with motion -- checked the longest of the three CALLOUTS
@@ -127,6 +171,119 @@ def draw_callout(img, text, alpha=1.0):
                CALLOUT_OUTLINE_THICKNESS, cv2.LINE_AA)
     cv2.putText(layer, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, CALLOUT_COLOR,
                CALLOUT_THICKNESS, cv2.LINE_AA)
+    if alpha >= 1.0:
+        img[:] = layer
+    else:
+        cv2.addWeighted(layer, alpha, img, 1 - alpha, 0, dst=img)
+
+
+# The wand is physically IN FRONT of the goal-blocked ghost, so the real
+# wand pixels are painted back OVER the composited ghost (per Tommy:
+# "composite the wand out, then redraw it over the ghost"). 3D occlusion
+# from the tracked spheres was tried first and failed: the belief
+# snapshot is a step function, so at the freeze instant the spheres
+# describe where the wand WAS seconds earlier, not where it visibly is.
+# A 2D mask is exact and stable because the freeze pins one fixed source
+# frame -- but ONLY for that exact frame: this mask is re-traced every
+# time the freeze's own source instant changes (moving the wand between
+# takes, or retiming the callout, both shift which video frame gets
+# frozen), since it's tied to pixel positions, not to anything that
+# tracks the wand automatically.
+#
+# Retraced for the CURRENT freeze instant (t=289.0538, i.e.
+# CALLOUTS[-1][0] - CALLOUT_LEAD_S -- see that callout's own comment for
+# why the time is expressed that way): earlier this mask was tuned for
+# t=287.05, from before the callout's time was adjusted so the "goal
+# blocked" panel text and this ghost would land in sync. The wand is
+# hand-held and moves a lot in 2s -- its screen position at the new
+# instant has nothing to do with the old one (out/wand_old_2870.png vs.
+# out/wand_new_2890.png), so the old mask painted real pixels from the
+# WRONG place, leaving stale ghost visible where the ghost should have
+# been occluded and vice versa. Eyeballed off out/wand_new_2890.png
+# (single straight shaft in this pose, no bend, so one "edges" corridor
+# covers it -- no separate "tail" segment needed this time).
+WAND_REPAINT_4K = {
+    # Shaft centerline as x = m*y + c in 4K pixels. Several earlier fits
+    # (by-eye, from just two measured points, or from a naive dark-run
+    # scan over a range wide enough to catch the shoulder joint's own
+    # shadow) each drifted off the rod somewhere along its length -- once
+    # badly enough that the two edge lines visibly crossed the rod's true
+    # position rather than bracketing it. This one comes from a dark-run
+    # scan restricted to y=475-605 (a clean band, rod against bright arm
+    # on both sides, no cube/joint contamination) at 5px steps, which
+    # gave a near-perfectly linear center trend (slope -0.567, width
+    # ~75-77px at every sample) -- fit with a straight average rather
+    # than two endpoints, then confirmed by drawing it back over the full
+    # cube-to-blue-tape length (out/wand_debug_overlay6.png) with no
+    # drift at either end.
+    "edges": {"left": (-0.57, 2201.0), "right": (-0.57, 2277.0),
+              "y_max": 1000, "margin": 8},
+    "tail": None,
+    # (x, y, r, kind) search regions -- see SELECTORS in
+    # wand_repaint_mask(). Coordinates from the same reference frame:
+    # the red cube mount, its two ball markers, two balls further down
+    # the shaft, and the blue gaffer-tape wrap.
+    "features": [(2040, 260, 110, "cube"), (2110, 195, 45, "ball"),
+                 (1975, 210, 45, "ball"), (1885, 610, 50, "ball"),
+                 (1715, 855, 50, "ball"), (1690, 920, 80, "tape")],
+}
+
+
+def wand_repaint_mask(real_bgr):
+    """uint8 mask of the wand in the goal-blocked freeze frame: the shaft
+    corridor (hugs the stick, per WAND_REPAINT_4K's traced centerline)
+    plus COLOR-SEGMENTED marker balls / mount posts / tape inside each
+    feature's search circle. Per Tommy: segment the actual stick+marker
+    pixels and redraw those over the ghost -- a plain filled circle also
+    repainted the curtain around each ball, which read as a hole cut out
+    of the wrong part of the ghost."""
+    h, w = real_bgr.shape[:2]
+    mask = np.zeros((h, w), np.uint8)
+    e = WAND_REPAINT_4K["edges"]
+    (ml, cl), (mr, cr) = e["left"], e["right"]
+    ys = np.arange(0, e["y_max"] + 1, 50)
+    left = [(ml * y + cl - e["margin"], y) for y in ys]
+    right = [(mr * y + cr + e["margin"], y) for y in ys[::-1]]
+    cv2.fillPoly(mask, [np.array(left + right, np.int32)], 255,
+                 cv2.LINE_AA)
+    tail = WAND_REPAINT_4K["tail"]
+    if tail is not None:
+        cv2.polylines(mask, [np.array(tail["polyline"], np.int32)], False, 255,
+                      tail["width"], cv2.LINE_AA)
+    hsv = cv2.cvtColor(real_bgr, cv2.COLOR_BGR2HSV)
+    H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    SELECTORS = {
+        "ball": (S < 70) & (V > 110),            # matte white sphere
+        "tape": (H > 90) & (H < 135) & (S > 70),  # blue gaffer tape
+        "dark": V < 80,                           # black mount hardware
+        "cube": ((H < 10) | (H > 170)) & (S > 80) & (V > 40),  # red mount cube
+    }
+    for x, y, r, kind in WAND_REPAINT_4K["features"]:
+        region = np.zeros((h, w), np.uint8)
+        cv2.circle(region, (x, y), r, 255, -1)
+        m = ((region > 0) & SELECTORS[kind]).astype(np.uint8) * 255
+        # close pinholes, then a small dilation so anti-aliased feature
+        # edges are covered too
+        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+        mask |= cv2.dilate(m, np.ones((5, 5), np.uint8))
+    return mask
+
+
+def draw_callout_arrow(img, arrow, alpha=1.0):
+    """Big black-outline-then-white-fill arrow pointing AT the part of
+    interest during a callout freeze (same fade as the caption). `arrow`
+    is ((tx, ty), (dx, dy)): tip at 4K pixel (tx, ty), tail at
+    (tx+dx, ty+dy). Frozen frames don't tell the viewer where to look on
+    their own -- the arrow does (per Tommy)."""
+    if arrow is None:
+        return
+    (tx, ty), (dx, dy) = arrow
+    tail, tip = (tx + dx, ty + dy), (tx, ty)
+    layer = img.copy()
+    cv2.arrowedLine(layer, tail, tip, (0, 0, 0), 44, cv2.LINE_AA,
+                    tipLength=0.32)
+    cv2.arrowedLine(layer, tail, tip, CALLOUT_COLOR, 24, cv2.LINE_AA,
+                    tipLength=0.32)
     if alpha >= 1.0:
         img[:] = layer
     else:
@@ -551,12 +708,17 @@ class Overlay:
         cv2.putText(img, "closest attempt", (uv[0] + 20, uv[1] + 6), FONT,
                    1.1, WARN_ORANGE, 2, cv2.LINE_AA)
 
-    def annotate(self, img, t_video, skeleton=False, obstacle_rings=True):
+    def annotate(self, img, t_video, skeleton=False, obstacle_rings=True,
+                 plan=True):
+        """plan=False suppresses the green dashed plan line for this one
+        frame -- used by the goal-blocked callout freeze, where the whole
+        point is that NO path is available (a plan line there would
+        contradict the caption)."""
         self.draw_trace(img, t_video)
         if self.tree is not None:
             self.draw_tree(img, t_video)
             self.draw_closest_approach(img, t_video)
-        if self.plans is not None:
+        if self.plans is not None and plan:
             self.draw_plan(img, t_video)
         self.draw_goal(img, t_video)
         if obstacle_rings:
@@ -681,7 +843,7 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
     # (e.g. rendering a short sub-segment for a preview) must never fire --
     # otherwise it "catches up" and freezes on frame 1, since t >= ct is
     # trivially true for the whole segment.
-    callout_done = [ct - CALLOUT_LEAD_S < t0 for ct, _, _ in callouts]
+    callout_done = [co[0] - CALLOUT_LEAD_S < t0 for co in callouts]
     hold_alphas = callout_hold_alphas(fps)
     goal_blocked_ghost = None  # lazily built iff a callout actually needs it
 
@@ -710,12 +872,12 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
         t = t0 + n / fps
         n += 1
 
-        due = next((i for i, ((ct, _, _), done) in
+        due = next((i for i, (co, done) in
                     enumerate(zip(callouts, callout_done))
-                    if not done and t >= ct - CALLOUT_LEAD_S), None)
+                    if not done and t >= co[0] - CALLOUT_LEAD_S), None)
         if due is not None:
             callout_done[due] = True
-            _, text, ghost_q = callouts[due]
+            _, text, ghost_q, arrow = callouts[due]
             img = np.frombuffer(buf, np.uint8).reshape(h, w, 3).copy()
             if ghost is not None:
                 img = ghost.composite(img, t, ghost_alpha, obstacles=True,
@@ -731,13 +893,21 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
                 if goal_blocked_ghost is None:
                     from sim_ghost import GhostRenderer
                     goal_blocked_ghost = GhostRenderer()
+                real = img.copy()
                 img = goal_blocked_ghost.composite_q(
                     img, ghost_q, alpha=0.55, tint=WARN_ORANGE)
-            ov.annotate(img, t, obstacle_rings=ghost is None)
+                # Real wand pixels back on top -- see WAND_REPAINT_4K.
+                m = wand_repaint_mask(real) > 0
+                img[m] = real[m]
+            # No plan line on the goal-blocked freeze (ghost_q set): the
+            # caption's point is that no path exists.
+            ov.annotate(img, t, obstacle_rings=ghost is None,
+                        plan=ghost_q is None)
             draw_speed_badge(img, 1)   # frozen -- not playing at `speedup` at all
             for a in hold_alphas:
                 frame = img.copy()
                 draw_callout(frame, text, alpha=a)
+                draw_callout_arrow(frame, arrow, alpha=a)
                 enc.stdin.write(frame.tobytes())
                 n_out += 1
             print(f"{n} src frames, {n_out} kept ({t:.1f}s) -- "

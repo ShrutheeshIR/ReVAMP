@@ -174,13 +174,28 @@ class GhostRenderer:
         rgba = self.render(t_video, obstacles=obstacles)
         return self._tint_composite(real_bgr, rgba, alpha, tint)
 
-    def composite_q(self, real_bgr, q, alpha=0.45, spheres=None, tint=None):
+    def composite_q(self, real_bgr, q, alpha=0.45, spheres=None, tint=None,
+                    occluders=None):
         """Same as `composite()`, but at an explicit joint config instead of
         one looked up from the logged trajectory by time -- for showing a
         configuration that was only ever a planner candidate (e.g. an
         unsolved query's closest-approach-to-goal state), not something the
-        real robot ever reached."""
+        real robot ever reached.
+
+        occluders: sphere list (same format as `spheres`) treated as
+        INVISIBLE occluders -- wherever one of them would cover the ghost
+        arm, the ghost is cut away so the real object at that position
+        (e.g. the wand the spheres track) reads as being IN FRONT of the
+        ghost instead of the ghost being pasted over it. Implemented as a
+        second render with the spheres present: any pixel that changes is
+        a pixel a sphere won in the depth test (requires this renderer to
+        be built with enough with_obstacle_slots)."""
         rgba = self.render_q(q, spheres=spheres)
+        if occluders:
+            occ = self.render_q(q, spheres=occluders)
+            diff = np.abs(occ.astype(np.int16)
+                          - rgba.astype(np.int16)).max(axis=2)
+            rgba[diff > 8, 3] = 0
         return self._tint_composite(real_bgr, rgba, alpha, tint)
 
 
