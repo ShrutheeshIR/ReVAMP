@@ -403,6 +403,15 @@ def render_one(name, out_path, pad_s=0.6, duration_s=None, banner_side="right"):
         VIDEO_X0, BANNER_X0, BANNER_X1 = PAD_X, 0, PAD_X
     rec = common.load_record(name)
     t_log, q_log = common.load_states(rec)
+    # Drop the premove block entirely, per Shrutheesh: the run opens with
+    # the arms spreading wide apart before ever approaching the box, which
+    # doesn't demonstrate anything about the planner -- cut straight to
+    # the first real step (reach_approach). This trims video, captions,
+    # and every running plot together, since they all key off t_log/q_log.
+    if rec.get("steps"):
+        premove_end = rec["steps"][0]["t_start"]
+        keep = t_log >= premove_end
+        t_log, q_log = t_log[keep], q_log[keep]
     with open(PLAN_CACHE[name], "rb") as f:
         plan_wall_s = _StubUnpickler(f).load()["meta"]["wall_s"]
 

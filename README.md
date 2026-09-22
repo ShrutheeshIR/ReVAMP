@@ -45,8 +45,8 @@ $PY scripts/make_title_card.py scratch/title_cards/title1.png \
   "ReVAMP: Vector-Accelerated Motion Planning" \
   "for Kinematically-Constrained Systems via Reparameterization" --font-size 56
 $PY scripts/make_title_card.py scratch/title_cards/title2.png \
-  "Solving a maze real-time with z-plane constraint" \
-  "with dynamic obstacles" --font-size 60
+  "Solving a maze real-time with z-plane" \
+  "constraint with dynamic obstacles" --font-size 60
 $PY scripts/make_title_card.py scratch/title_cards/title3.png \
   "Bimanual Constraint for a 14-DoF KUKA Iiwa" \
   "Fixed relative transform between two arms" --font-size 60
