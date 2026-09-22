@@ -181,20 +181,43 @@ WAND_REPAINT_4K = {
         {"polyline": [(1110, 850), (985, 1010), (860, 1350), (615, 1740),
                       (390, 2100)], "width": 210},
     ],
-    "circles": [(1618, 128, 42), (1318, 492, 44), (1350, 540, 25),
-                (870, 1095, 46), (945, 1160, 145)],
+    # (x, y, r, kind) search regions; only pixels matching each feature's
+    # own color test inside the circle are repainted, so the circles can
+    # be generous without cutting a halo of ghost around the feature.
+    "features": [(1618, 128, 60, "ball"), (1645, 178, 36, "dark"),
+                 (1318, 492, 64, "ball"), (1348, 545, 40, "dark"),
+                 (870, 1095, 64, "ball"), (945, 1160, 170, "tape")],
 }
 
 
-def wand_repaint_mask(shape):
-    """uint8 mask of the wand (shaft + marker balls + tape) in the
-    goal-blocked freeze frame, from WAND_REPAINT_4K."""
-    mask = np.zeros(shape[:2], np.uint8)
+def wand_repaint_mask(real_bgr):
+    """uint8 mask of the wand in the goal-blocked freeze frame: the shaft
+    corridor (hugs the stick, per WAND_REPAINT_4K's traced centerline)
+    plus COLOR-SEGMENTED marker balls / mount posts / tape inside each
+    feature's search circle. Per Tommy: segment the actual stick+marker
+    pixels and redraw those over the ghost -- a plain filled circle also
+    repainted the curtain around each ball, which read as a hole cut out
+    of the wrong part of the ghost."""
+    h, w = real_bgr.shape[:2]
+    mask = np.zeros((h, w), np.uint8)
     for seg in WAND_REPAINT_4K["segments"]:
         pts = np.array(seg["polyline"], np.int32)
         cv2.polylines(mask, [pts], False, 255, seg["width"], cv2.LINE_AA)
-    for x, y, r in WAND_REPAINT_4K["circles"]:
-        cv2.circle(mask, (x, y), r, 255, -1, cv2.LINE_AA)
+    hsv = cv2.cvtColor(real_bgr, cv2.COLOR_BGR2HSV)
+    H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    SELECTORS = {
+        "ball": (S < 70) & (V > 110),            # matte white sphere
+        "tape": (H > 90) & (H < 135) & (S > 70),  # blue gaffer tape
+        "dark": V < 80,                           # black mount hardware
+    }
+    for x, y, r, kind in WAND_REPAINT_4K["features"]:
+        region = np.zeros((h, w), np.uint8)
+        cv2.circle(region, (x, y), r, 255, -1)
+        m = ((region > 0) & SELECTORS[kind]).astype(np.uint8) * 255
+        # close pinholes, then a small dilation so anti-aliased feature
+        # edges are covered too
+        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+        mask |= cv2.dilate(m, np.ones((5, 5), np.uint8))
     return mask
 
 
@@ -826,7 +849,7 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
                 img = goal_blocked_ghost.composite_q(
                     img, ghost_q, alpha=0.55, tint=WARN_ORANGE)
                 # Real wand pixels back on top -- see WAND_REPAINT_4K.
-                m = wand_repaint_mask(img.shape) > 0
+                m = wand_repaint_mask(real) > 0
                 img[m] = real[m]
             # No plan line on the goal-blocked freeze (ghost_q set): the
             # caption's point is that no path exists.
