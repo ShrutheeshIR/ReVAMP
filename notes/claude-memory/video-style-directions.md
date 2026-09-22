@@ -25,3 +25,13 @@ read. These apply to any future re-render or new clip in this effort:
    would echo the bimanual side-by-side (which compares methods) and
    dilute focus. Tommy prefers clip 1 (point_00, 20260828_142748): it
    bends over farthest, best showing whole-body motion.
+5. **Stills first, Tommy's sign-off, THEN the full re-render.** When
+   iterating on callout freezes (or any single-frame element), preview
+   with `scratch/preview_callouts.py`-style stills and wait for Tommy to
+   approve them before launching a ~15-minute full segment render — he
+   asked explicitly to hold renders until he's happy with the frames.
+6. **Overlays respect real-world occlusion.** A ghost/sim layer must be
+   cut away behind real foreground objects (e.g. the wand), not pasted
+   over them — done by rendering the tracked obstacle spheres as depth
+   occluders (see `wand_occluders()` in scripts/render_overlay.py, which
+   densifies the sparse sphere dots into the full shaft line).

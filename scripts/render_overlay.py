@@ -158,6 +158,38 @@ def draw_callout(img, text, alpha=1.0):
         cv2.addWeighted(layer, alpha, img, 1 - alpha, 0, dst=img)
 
 
+# The wand is physically IN FRONT of the goal-blocked ghost, so the real
+# wand pixels are painted back OVER the composited ghost (per Tommy:
+# "composite the wand out, then redraw it over the ghost"). 3D occlusion
+# from the tracked spheres was tried first and failed: the belief
+# snapshot is a step function, so at the freeze instant the spheres
+# describe where the wand WAS seconds earlier, not where it visibly is.
+# A 2D mask is exact and stable because the freeze pins one fixed source
+# frame (t = CALLOUTS[-1] - CALLOUT_LEAD_S). Traced by hand off that
+# frame: a thick polyline down the shaft, plus circles for the three
+# OptiTrack marker balls (part of the stick -- per Tommy they must
+# occlude too) and the blue tape wrap.
+WAND_REPAINT_4K = {
+    "polyline": [(1740, 20), (1550, 180), (1320, 530), (1200, 800),
+                 (940, 1160), (700, 1410), (300, 1880), (120, 2090)],
+    "width": 120,
+    "circles": [(868, 1106, 52), (1320, 488, 42), (1614, 124, 42),
+                (945, 1220, 130)],
+}
+
+
+def wand_repaint_mask(shape):
+    """uint8 mask of the wand (shaft + marker balls + tape) in the
+    goal-blocked freeze frame, from WAND_REPAINT_4K."""
+    mask = np.zeros(shape[:2], np.uint8)
+    pts = np.array(WAND_REPAINT_4K["polyline"], np.int32)
+    cv2.polylines(mask, [pts], False, 255, WAND_REPAINT_4K["width"],
+                  cv2.LINE_AA)
+    for x, y, r in WAND_REPAINT_4K["circles"]:
+        cv2.circle(mask, (x, y), r, 255, -1, cv2.LINE_AA)
+    return mask
+
+
 def draw_callout_arrow(img, arrow, alpha=1.0):
     """Big black-outline-then-white-fill arrow pointing AT the part of
     interest during a callout freeze (same fade as the caption). `arrow`
@@ -781,14 +813,13 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
                 # same thing if both happen to be on screen at once.
                 if goal_blocked_ghost is None:
                     from sim_ghost import GhostRenderer
-                    # Slots for the tracked obstacle spheres, used as
-                    # occluders below -- the wand is physically in front
-                    # of where the ghost reaches, so the ghost must be
-                    # cut away behind it, not pasted over it (per Tommy).
-                    goal_blocked_ghost = GhostRenderer(with_obstacle_slots=9)
+                    goal_blocked_ghost = GhostRenderer()
+                real = img.copy()
                 img = goal_blocked_ghost.composite_q(
-                    img, ghost_q, alpha=0.55, tint=WARN_ORANGE,
-                    occluders=goal_blocked_ghost.obstacles_at(t))
+                    img, ghost_q, alpha=0.55, tint=WARN_ORANGE)
+                # Real wand pixels back on top -- see WAND_REPAINT_4K.
+                m = wand_repaint_mask(img.shape) > 0
+                img[m] = real[m]
             # No plan line on the goal-blocked freeze (ghost_q set): the
             # caption's point is that no path exists.
             ov.annotate(img, t, obstacle_rings=ghost is None,
