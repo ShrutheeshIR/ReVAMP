@@ -169,12 +169,20 @@ def draw_callout(img, text, alpha=1.0):
 # frame: a thick polyline down the shaft, plus circles for the three
 # OptiTrack marker balls (part of the stick -- per Tommy they must
 # occlude too) and the blue tape wrap.
+# Two width segments because the shaft visibly widens toward the camera
+# (and blurs) below the maze rim. Centerline traced off the shaft's RIGHT
+# edge (crisp) minus half-width -- the left edge melts into a curtain
+# shadow, which is what made both an eyeballed trace and a darkest-run
+# fit drift left.
 WAND_REPAINT_4K = {
-    "polyline": [(1740, 20), (1550, 180), (1320, 530), (1200, 800),
-                 (940, 1160), (700, 1410), (300, 1880), (120, 2090)],
-    "width": 120,
-    "circles": [(868, 1106, 52), (1320, 488, 42), (1614, 124, 42),
-                (945, 1220, 130)],
+    "segments": [
+        {"polyline": [(1765, 0), (1610, 240), (1425, 492), (1265, 680),
+                      (1110, 850)], "width": 135},
+        {"polyline": [(1110, 850), (985, 1010), (860, 1350), (615, 1740),
+                      (390, 2100)], "width": 210},
+    ],
+    "circles": [(1618, 128, 42), (1318, 492, 44), (1350, 540, 25),
+                (870, 1095, 46), (945, 1160, 145)],
 }
 
 
@@ -182,9 +190,9 @@ def wand_repaint_mask(shape):
     """uint8 mask of the wand (shaft + marker balls + tape) in the
     goal-blocked freeze frame, from WAND_REPAINT_4K."""
     mask = np.zeros(shape[:2], np.uint8)
-    pts = np.array(WAND_REPAINT_4K["polyline"], np.int32)
-    cv2.polylines(mask, [pts], False, 255, WAND_REPAINT_4K["width"],
-                  cv2.LINE_AA)
+    for seg in WAND_REPAINT_4K["segments"]:
+        pts = np.array(seg["polyline"], np.int32)
+        cv2.polylines(mask, [pts], False, 255, seg["width"], cv2.LINE_AA)
     for x, y, r in WAND_REPAINT_4K["circles"]:
         cv2.circle(mask, (x, y), r, 255, -1, cv2.LINE_AA)
     return mask
