@@ -82,16 +82,23 @@ GOAL_BLOCKED_DIST_CM = float(_gb_tree["closest_to_goal_distance"]) * 100.0
 # hand-picked off each callout's own frozen frame (stable, since the
 # freeze pins an exact source frame).
 #
-# The 2nd callout moved 149.69 -> 213.82 (per Tommy: the arm visibly
-# moves away from the stick more around 0:56 of the callouts cut; 213.82
-# is the goal-repeat replan, row 36, that lands there).
+# Times (both per Tommy): the 1st callout is the BIG send-it-back replan
+# at 74.81 (row 10 -- the reroute that dives the plan all the way back
+# around the bottom of the maze; the original 33.07 froze while the
+# obstacle was still being placed, before any path was actually blocked),
+# landing at ~0:15 of the callouts cut. The 2nd moved 149.69 -> 213.82
+# (row 36, ~0:56, where the arm visibly moves away from the stick).
+#
+# Arrow targets point at the CAUSE -- the obstacle (the placed piece, the
+# marker spheres on the stick's end) -- not at the robot part it affects
+# (per Tommy).
 CALLOUTS = [
-    (33.07, "Path blocked by obstacle - replanning", None,
-     ((1600, 1105), (-500, 460))),
+    (74.81, "Path blocked by obstacle - replanning", None,
+     ((1920, 1120), (-520, 440))),
     (213.82, "Obstacle at the elbow - robot uses self-motion to avoid it",
-     None, ((860, 940), (520, 520))),
+     None, ((1105, 365), (-460, 480))),
     (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path",
-     None, ((780, 660), (560, 440))),
+     None, ((795, 170), (420, 460))),
     (289.05, f"Goal blocked: closest config (ghost) still "
              f"{GOAL_BLOCKED_DIST_CM:.0f} cm short of goal",
      GOAL_BLOCKED_Q, ((1150, 950), (560, 440))),
@@ -586,12 +593,17 @@ class Overlay:
         cv2.putText(img, "closest attempt", (uv[0] + 20, uv[1] + 6), FONT,
                    1.1, WARN_ORANGE, 2, cv2.LINE_AA)
 
-    def annotate(self, img, t_video, skeleton=False, obstacle_rings=True):
+    def annotate(self, img, t_video, skeleton=False, obstacle_rings=True,
+                 plan=True):
+        """plan=False suppresses the green dashed plan line for this one
+        frame -- used by the goal-blocked callout freeze, where the whole
+        point is that NO path is available (a plan line there would
+        contradict the caption)."""
         self.draw_trace(img, t_video)
         if self.tree is not None:
             self.draw_tree(img, t_video)
             self.draw_closest_approach(img, t_video)
-        if self.plans is not None:
+        if self.plans is not None and plan:
             self.draw_plan(img, t_video)
         self.draw_goal(img, t_video)
         if obstacle_rings:
@@ -768,7 +780,10 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
                     goal_blocked_ghost = GhostRenderer()
                 img = goal_blocked_ghost.composite_q(
                     img, ghost_q, alpha=0.55, tint=WARN_ORANGE)
-            ov.annotate(img, t, obstacle_rings=ghost is None)
+            # No plan line on the goal-blocked freeze (ghost_q set): the
+            # caption's point is that no path exists.
+            ov.annotate(img, t, obstacle_rings=ghost is None,
+                        plan=ghost_q is None)
             draw_speed_badge(img, 1)   # frozen -- not playing at `speedup` at all
             for a in hold_alphas:
                 frame = img.copy()

@@ -36,7 +36,15 @@ URDF_GL_PATH = URDF.replace(".urdf", "_gl.urdf")
 
 
 def urdf_for_rendering():
-    return URDF_GL_PATH if os.path.exists(URDF_GL_PATH) else URDF
+    if not os.path.exists(URDF_GL_PATH):
+        # The GL renderer silently SKIPS meshes it can't load -- without
+        # the generated OBJ set, ghost renders drop links 3-6 (half the
+        # arm) with exit code 0. Don't let that pass quietly.
+        print(f"WARNING: {URDF_GL_PATH} missing -- ghost renders will lose "
+              f"most arm links. Run scripts/make_gl_meshes.py first.",
+              flush=True)
+        return URDF
+    return URDF_GL_PATH
 
 VIDEO_WH = (3840, 2160)
 VIDEO_FPS = 4641200 / 77389  # avg_frame_rate from ffprobe (~59.97)
