@@ -14,18 +14,28 @@ fade in/out title slide. It stitches together **three independently-built
 pieces**, each documented in its own project:
 
 1. **The maze clip** (this directory, below) — a `render_overlay.py`
-   `--segment` render, e.g. the current one:
+   `--segment` render. The current one uses `--callouts` (freeze-frame
+   captions with pointing arrows at four hand-picked moments, uniform 4x
+   everywhere else — per Tommy, this replaces the per-replan slow-down
+   windows, which read as choppy):
    ```
-   python3 scripts/render_overlay.py --segment 15.0 380.0 --plan --tree --speedup 4
+   python3 scripts/render_overlay.py --segment 15.0 380.0 --plan --tree --speedup 4 --callouts
    ```
 2. **The bimanual-iiwa sim clip** — see
    [`bimanual-iiwa/README.md`](bimanual-iiwa/README.md) for the full
-   from-scratch pipeline (textures → 12 segment renders → side-by-side →
-   concat → 2x speed). Final input: `bimanual-iiwa/out/sidebyside_all_2x.mp4`.
+   from-scratch pipeline (textures → segment renders → side-by-side).
+   Final input: `bimanual-iiwa/out/sidebyside_B_to_T.mp4` — ONE segment
+   (Bottom→Top) at 1x, per Tommy, not the six-segment 2x concat
+   (`sidebyside_all_2x.mp4`, which the README there still documents how
+   to build).
 3. **The RBY1 real-hardware clip** — see
    [`rby1_humanoid/README.md`](rby1_humanoid/README.md) for the full
-   from-scratch pipeline (camera fit → hardware overlay renders →
-   side-by-side + banner). Final input: `rby1_humanoid/out/hw_overlay_side_by_side.mp4`.
+   from-scratch pipeline (camera fit → hardware overlay renders). Final
+   input: `rby1_humanoid/out/hw_overlay_point_00.mp4` — ONE clip (per
+   Tommy: two side-by-side hardware runs would echo the bimanual method
+   comparison; point_00 bends over farthest, best showing whole-body
+   motion). Each overlay render is already a full 1920x1080 frame with
+   its own caption/plot banner.
 
 Once all three inputs exist, generate the title cards and assemble:
 

@@ -108,6 +108,15 @@ REFERENCE_METHOD, REFERENCE_SEGMENT = "DualFollower", "T->B"
 # -- purely a caption-color threshold, not a pass/fail judgment.
 ERROR_WARN_MM = 0.5
 
+# One-line method descriptor in each caption panel (per Tommy: the
+# side-by-side should HIGHLIGHT the difference between the two
+# parameterizations, not leave the viewer to infer it from the traces --
+# DualFollower's motion is the balanced, direct one).
+METHOD_TRAIT = {
+    "LeaderFollower": "leader arm plans - follower swings wide to track it",
+    "DualFollower": "midpoint plans - balanced, direct motion for both arms",
+}
+
 # End-effector trace overlay, matching revamp-video/scripts/render_overlay.py's
 # convention (executed trace vs. remaining plan ahead) but with the color
 # carrying which ARM instead of executed-vs-planned -- per Tommy: left arm
@@ -339,6 +348,7 @@ def render_one(method, segment, out_path, speed=1.0):
         img = draw_traces(img, trace_spec, full_pts, progress_idx, X_WC, fx, fy, cx, cy)
         img = draw_boxed_lines(img, [
             (method, font, HIGHLIGHT),
+            (METHOD_TRAIT[method], font_small, WHITE),
             (segment_label, font_small, WHITE),
             (f"planning time {d['planning_time_s'] * 1000:.2f} ms", font_small, GRAY),
             (f"constraint error {err_mm:.3f} mm", font_small, err_color),

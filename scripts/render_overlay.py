@@ -74,13 +74,27 @@ _gb_tree = np.load(os.path.join(common.TREE_DIR, f"{GOAL_BLOCKED_ROW:03d}.npz"))
 GOAL_BLOCKED_Q = _gb_tree["closest_to_goal_ambient_q"].astype(float)
 GOAL_BLOCKED_DIST_CM = float(_gb_tree["closest_to_goal_distance"]) * 100.0
 
+# Each entry: (t, text, ghost_q, arrow) -- arrow is ((tx, ty), (dx, dy)):
+# a big on-screen arrow whose TIP is at 4K pixel (tx, ty) and whose tail
+# sits at (tx+dx, ty+dy), drawn only during the freeze (same fade as the
+# caption). Per Tommy: a frozen frame alone doesn't tell the viewer WHERE
+# to look -- point at the part of interest outright. Coordinates are
+# hand-picked off each callout's own frozen frame (stable, since the
+# freeze pins an exact source frame).
+#
+# The 2nd callout moved 149.69 -> 213.82 (per Tommy: the arm visibly
+# moves away from the stick more around 0:56 of the callouts cut; 213.82
+# is the goal-repeat replan, row 36, that lands there).
 CALLOUTS = [
-    (33.07, "Path blocked by obstacle - replanning", None),
-    (149.69, "Obstacle at the elbow - robot uses self-motion to avoid it", None),
-    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path", None),
+    (33.07, "Path blocked by obstacle - replanning", None,
+     ((1600, 1105), (-500, 460))),
+    (213.82, "Obstacle at the elbow - robot uses self-motion to avoid it",
+     None, ((860, 940), (520, 520))),
+    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path",
+     None, ((780, 660), (560, 440))),
     (289.05, f"Goal blocked: closest config (ghost) still "
              f"{GOAL_BLOCKED_DIST_CM:.0f} cm short of goal",
-     GOAL_BLOCKED_Q),
+     GOAL_BLOCKED_Q, ((1150, 950), (560, 440))),
 ]
 # Was a 1x SLOWDOWN window (playing on through at 1x). Per Tommy: freeze
 # the frame outright for CALLOUT_HOLD_S seconds instead -- the moment
@@ -127,6 +141,27 @@ def draw_callout(img, text, alpha=1.0):
                CALLOUT_OUTLINE_THICKNESS, cv2.LINE_AA)
     cv2.putText(layer, text, (tx, ty), FONT, CALLOUT_FONT_SCALE, CALLOUT_COLOR,
                CALLOUT_THICKNESS, cv2.LINE_AA)
+    if alpha >= 1.0:
+        img[:] = layer
+    else:
+        cv2.addWeighted(layer, alpha, img, 1 - alpha, 0, dst=img)
+
+
+def draw_callout_arrow(img, arrow, alpha=1.0):
+    """Big black-outline-then-white-fill arrow pointing AT the part of
+    interest during a callout freeze (same fade as the caption). `arrow`
+    is ((tx, ty), (dx, dy)): tip at 4K pixel (tx, ty), tail at
+    (tx+dx, ty+dy). Frozen frames don't tell the viewer where to look on
+    their own -- the arrow does (per Tommy)."""
+    if arrow is None:
+        return
+    (tx, ty), (dx, dy) = arrow
+    tail, tip = (tx + dx, ty + dy), (tx, ty)
+    layer = img.copy()
+    cv2.arrowedLine(layer, tail, tip, (0, 0, 0), 44, cv2.LINE_AA,
+                    tipLength=0.32)
+    cv2.arrowedLine(layer, tail, tip, CALLOUT_COLOR, 24, cv2.LINE_AA,
+                    tipLength=0.32)
     if alpha >= 1.0:
         img[:] = layer
     else:
@@ -681,7 +716,7 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
     # (e.g. rendering a short sub-segment for a preview) must never fire --
     # otherwise it "catches up" and freezes on frame 1, since t >= ct is
     # trivially true for the whole segment.
-    callout_done = [ct - CALLOUT_LEAD_S < t0 for ct, _, _ in callouts]
+    callout_done = [co[0] - CALLOUT_LEAD_S < t0 for co in callouts]
     hold_alphas = callout_hold_alphas(fps)
     goal_blocked_ghost = None  # lazily built iff a callout actually needs it
 
@@ -710,12 +745,12 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
         t = t0 + n / fps
         n += 1
 
-        due = next((i for i, ((ct, _, _), done) in
+        due = next((i for i, (co, done) in
                     enumerate(zip(callouts, callout_done))
-                    if not done and t >= ct - CALLOUT_LEAD_S), None)
+                    if not done and t >= co[0] - CALLOUT_LEAD_S), None)
         if due is not None:
             callout_done[due] = True
-            _, text, ghost_q = callouts[due]
+            _, text, ghost_q, arrow = callouts[due]
             img = np.frombuffer(buf, np.uint8).reshape(h, w, 3).copy()
             if ghost is not None:
                 img = ghost.composite(img, t, ghost_alpha, obstacles=True,
@@ -738,6 +773,7 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
             for a in hold_alphas:
                 frame = img.copy()
                 draw_callout(frame, text, alpha=a)
+                draw_callout_arrow(frame, arrow, alpha=a)
                 enc.stdin.write(frame.tobytes())
                 n_out += 1
             print(f"{n} src frames, {n_out} kept ({t:.1f}s) -- "

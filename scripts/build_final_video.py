@@ -22,7 +22,10 @@ SEQUENCE = [
     os.path.join(TITLE_DIR, "title2.mp4"),
     os.path.join(REPO, "out", "highlight_plan_tree_4x_4k.mp4"),
     os.path.join(TITLE_DIR, "title3.mp4"),
-    os.path.join(REPO, "bimanual-iiwa", "out", "sidebyside_all_2x.mp4"),
+    # ONE segment (B->T) at 1x, not all six at 2x -- per Tommy: a single
+    # good exemplar with the method difference readable beats the full
+    # sped-up matrix.
+    os.path.join(REPO, "bimanual-iiwa", "out", "sidebyside_B_to_T.mp4"),
     os.path.join(TITLE_DIR, "title4.mp4"),
     os.path.join(REPO, "rby1_humanoid", "out", "hw_overlay_point_00.mp4"),
 ]

@@ -87,7 +87,8 @@ $PY scripts/render_segment.py DualFollower "T->B"      # quote the arrow, or the
 
 Each render is 1920x1080/30fps, true-black background, an orbiting camera
 (`ORBIT_CENTER=[0.5,0.4,0.45]`, `ORBIT_RADIUS=2.4`, `ORBIT_ELEV_DEG=22`,
-azimuth sweeping `-160°→-240°`, a mirror pair around the scene's own -180°
+azimuth sweeping `-180°→-220°` (was `-160°→-240°`; halved per Tommy —
+"a bit is okay to show depth", 80° was too much), a mirror pair around the scene's own -180°
 symmetry axis — routed through -180 rather than 0 because azimuth near
 -10°/+20° swings the shelf's solid back panel between camera and arms), with:
 
@@ -156,8 +157,12 @@ ffmpeg -y -i sidebyside_all.mp4 -filter:v "setpts=0.5*PTS" -r 30 \
   -c:v libx264 -crf 20 -preset fast -pix_fmt yuv420p sidebyside_all_2x.mp4
 ```
 
-`sidebyside_all_2x.mp4` is the final deliverable used in the top-level
-`revamp-video/scripts/build_final_video.py` assembly.
+`sidebyside_all_2x.mp4` is the full six-segment tour. The top-level
+`revamp-video/scripts/build_final_video.py` assembly instead uses
+**`sidebyside_B_to_T.mp4` — one segment, 1x** (per Tommy: a single good
+exemplar with the method difference readable beats the sped-up matrix;
+the per-panel caption's METHOD_TRAIT line spells out the
+LeaderFollower/DualFollower difference).
 
 ## Gotchas or previously-wrong-decisions worth not repeating
 
