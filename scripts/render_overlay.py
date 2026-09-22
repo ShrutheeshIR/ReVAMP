@@ -82,23 +82,27 @@ GOAL_BLOCKED_DIST_CM = float(_gb_tree["closest_to_goal_distance"]) * 100.0
 # hand-picked off each callout's own frozen frame (stable, since the
 # freeze pins an exact source frame).
 #
-# Times (both per Tommy): the 1st callout is the BIG send-it-back replan
-# at 74.81 (row 10 -- the reroute that dives the plan all the way back
-# around the bottom of the maze; the original 33.07 froze while the
-# obstacle was still being placed, before any path was actually blocked),
-# landing at ~0:15 of the callouts cut. The 2nd moved 149.69 -> 213.82
-# (row 36, ~0:56, where the arm visibly moves away from the stick).
+# Times: each callout time is chosen so the FREEZE (at t - CALLOUT_LEAD_S)
+# lands just AFTER its replan has fired -- panel showing the replan's
+# stats, the NEW plan drawn, the obstacle in place -- matched frame-by-
+# frame against Tommy's two reference screenshots (2026-09-21):
+#   1st: freeze 34.8, right after the 409 ms / 85,917-iteration replan at
+#        33.07 (row 5) -- hand releasing the just-placed piece. (A freeze
+#        BEFORE the replan, mid-placement, showed a moment where nothing
+#        was blocked yet -- rejected twice.)
+#   2nd: freeze 248.2, right after the 145 ms / 37,128-iteration replan
+#        at 246.80 (row 49) -- stick pressed into the arm, big
+#        reconfiguration visible. (An "obstacle at the elbow" callout at
+#        213.82 sat between these two and was dropped per Tommy.)
 #
 # Arrow targets point at the CAUSE -- the obstacle (the placed piece, the
-# marker spheres on the stick's end) -- not at the robot part it affects
+# marker spheres on the stick) -- not at the robot part it affects
 # (per Tommy).
 CALLOUTS = [
-    (74.81, "Path blocked by obstacle - replanning", None,
-     ((1920, 1120), (-520, 440))),
-    (213.82, "Obstacle at the elbow - robot uses self-motion to avoid it",
-     None, ((1105, 365), (-460, 480))),
-    (239.31, "Elbow obstacle forces significant reconfiguration and a new maze path",
-     None, ((795, 170), (420, 460))),
+    (36.8, "Path blocked by obstacle - replanning", None,
+     ((1710, 1235), (-520, 420))),
+    (250.2, "Elbow obstacle forces significant reconfiguration and a new maze path",
+     None, ((1186, 518), (420, 460))),
     (289.05, f"Goal blocked: closest config (ghost) still "
              f"{GOAL_BLOCKED_DIST_CM:.0f} cm short of goal",
      GOAL_BLOCKED_Q, ((1150, 950), (560, 440))),
@@ -777,9 +781,14 @@ def render_segment(ov, t0, t1, out_path, fps=None, ghost=None,
                 # same thing if both happen to be on screen at once.
                 if goal_blocked_ghost is None:
                     from sim_ghost import GhostRenderer
-                    goal_blocked_ghost = GhostRenderer()
+                    # Slots for the tracked obstacle spheres, used as
+                    # occluders below -- the wand is physically in front
+                    # of where the ghost reaches, so the ghost must be
+                    # cut away behind it, not pasted over it (per Tommy).
+                    goal_blocked_ghost = GhostRenderer(with_obstacle_slots=9)
                 img = goal_blocked_ghost.composite_q(
-                    img, ghost_q, alpha=0.55, tint=WARN_ORANGE)
+                    img, ghost_q, alpha=0.55, tint=WARN_ORANGE,
+                    occluders=goal_blocked_ghost.obstacles_at(t))
             # No plan line on the goal-blocked freeze (ghost_q set): the
             # caption's point is that no path exists.
             ov.annotate(img, t, obstacle_rings=ghost is None,
