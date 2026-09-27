@@ -38,6 +38,7 @@
 
 # Video pipeline
 /venv/
+/video-venv/
 /scratch/
 *.MOV
 *.mp4

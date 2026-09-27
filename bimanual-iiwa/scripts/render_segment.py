@@ -99,6 +99,13 @@ ORBIT_AZ_MID_DEG = -200.0
 SEGMENT_ORBIT_RANGE = {
     "T->B": (ORBIT_AZ_END_DEG, ORBIT_AZ_MID_DEG),
     "B->M": (ORBIT_AZ_MID_DEG, ORBIT_AZ_START_DEG),
+    # Same split, reused for a different back-to-back pair (T->M, M->B) --
+    # per Shrutheesh's "Projection" single-panel renders -- so THAT cut is
+    # continuous too (each pair only ever gets rendered/concatenated
+    # together, never all 4 in one sequence, so reusing the same two
+    # ranges across both pairs never actually collides).
+    "T->M": (ORBIT_AZ_END_DEG, ORBIT_AZ_MID_DEG),
+    "M->B": (ORBIT_AZ_MID_DEG, ORBIT_AZ_START_DEG),
 }
 # "Much slower" per Tommy -- 1/3 of the TOPPRA-optimal rate everywhere this
 # project renders now (see common.retime_configs' speed param: <1 stretches
@@ -156,6 +163,14 @@ TRACE_SPEC = {
     "LeaderFollower": [("left", HIGHLIGHT), ("right", WARN_ORANGE)],
     "DualFollower": [("left", WARN_ORANGE), ("right", WARN_ORANGE),
                      ("mid", HIGHLIGHT)],
+    # McVAMP/Projection: both arms independently plan as "leaders" (no
+    # follower swing-wide, no shared midpoint) -- per Shrutheesh, both
+    # traced in the same leader color instead of a leader/follower or
+    # follower/midpoint split. "Projection" is McVAMP's own method name
+    # (projection-based CMP) -- accept both spellings for the trajectory
+    # files/CLI.
+    "McVAMP": [("left", HIGHLIGHT), ("right", HIGHLIGHT)],
+    "Projection": [("left", HIGHLIGHT), ("right", HIGHLIGHT)],
 }
 
 
@@ -282,7 +297,12 @@ def segment_label_for(segment):
     return f"{SHELF_LEVEL_NAME[a]} -> {SHELF_LEVEL_NAME[b]}"
 
 
-def render_one(method, segment, out_path, speed=DEFAULT_SPEED):
+def render_one(method, segment, out_path, speed=DEFAULT_SPEED, plain=False):
+    """plain=True: no caption panel, no legend banner, no speed badge --
+    just the robot render + traces. Per Shrutheesh, for the McVAMP
+    single-panel (not side-by-side) render, since there's no
+    DualFollower/LeaderFollower distinction left to caption or compare
+    against."""
     segment_label = segment_label_for(segment)
     az_start, az_end = SEGMENT_ORBIT_RANGE.get(
         segment, (ORBIT_AZ_START_DEG, ORBIT_AZ_END_DEG))
@@ -368,25 +388,26 @@ def render_one(method, segment, out_path, speed=DEFAULT_SPEED):
 
         img = Image.fromarray(arr)
         img = draw_traces(img, trace_spec, full_pts, progress_idx, X_WC, fx, fy, cx, cy)
-        img = draw_boxed_lines(img, [
-            (method, font, HIGHLIGHT),
-            (METHOD_TRAIT[method], font_small, WHITE),
-            (segment_label, font_small, WHITE),
-            (f"planning time {d['planning_time_s'] * 1000:.2f} ms", font_small, GRAY),
-            (f"constraint error {err_mm:.3f} mm", font_small, err_color),
-        ], (TEXT_X, TEXT_Y_OFFSET))
-        # Playback-speed badge, top-right, at TEXT_Y_OFFSET (below the
-        # side-by-side's legend banner, same reasoning as the caption box
-        # above) -- placing it at the true top (y=20) put it right under
-        # the banner's own title text, which is opaque there and hid it.
-        # Always "1x": `speed` retimes the SIMULATED motion itself (how
-        # fast the arms move in the scene), it isn't a post-hoc playback
-        # multiplier -- the rendered clip always plays out at its own
-        # native fps with no frame drop/duplicate speedup, unlike the
-        # maze's --speedup. Per Tommy, every video in the final assembly
-        # should still say its playback speed explicitly.
-        img = draw_boxed_lines(img, [("1x", font_small, WHITE)],
-                               (BADGE_X, TEXT_Y_OFFSET), align="top-right")
+        if not plain:
+            img = draw_boxed_lines(img, [
+                (method, font, HIGHLIGHT),
+                (METHOD_TRAIT[method], font_small, WHITE),
+                (segment_label, font_small, WHITE),
+                (f"planning time {d['planning_time_s'] * 1000:.2f} ms", font_small, GRAY),
+                (f"constraint error {err_mm:.3f} mm", font_small, err_color),
+            ], (TEXT_X, TEXT_Y_OFFSET))
+            # Playback-speed badge, top-right, at TEXT_Y_OFFSET (below the
+            # side-by-side's legend banner, same reasoning as the caption box
+            # above) -- placing it at the true top (y=20) put it right under
+            # the banner's own title text, which is opaque there and hid it.
+            # Always "1x": `speed` retimes the SIMULATED motion itself (how
+            # fast the arms move in the scene), it isn't a post-hoc playback
+            # multiplier -- the rendered clip always plays out at its own
+            # native fps with no frame drop/duplicate speedup, unlike the
+            # maze's --speedup. Per Tommy, every video in the final assembly
+            # should still say its playback speed explicitly.
+            img = draw_boxed_lines(img, [("1x", font_small, WHITE)],
+                                   (BADGE_X, TEXT_Y_OFFSET), align="top-right")
         pipe.stdin.write(np.array(img).tobytes())
         if i % 60 == 0:
             print(f"  frame {i}/{len(frames)}")
@@ -401,10 +422,16 @@ def render_one(method, segment, out_path, speed=DEFAULT_SPEED):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("method", nargs="?", choices=common.METHODS)
-    ap.add_argument("segment", nargs="?", choices=common.SEGMENTS)
+    ap.add_argument("method", nargs="?",
+                    choices=common.METHODS + ["McVAMP", "Projection"])
+    ap.add_argument("segment", nargs="?",
+                    choices=common.SEGMENTS + ["M->T", "T->M", "M->B", "B->T"])
     ap.add_argument("--speed", type=float, default=DEFAULT_SPEED)
     ap.add_argument("--all", action="store_true")
+    ap.add_argument("--plain", action="store_true",
+                    help="no caption panel/legend/speed badge -- just the "
+                         "robot render + traces (for McVAMP's single, "
+                         "non-side-by-side render)")
     args = ap.parse_args()
 
     if args.all:
@@ -419,7 +446,8 @@ def main():
         sys.exit("give METHOD SEGMENT, or --all")
     name = f"{args.method.lower()}_{args.segment.replace('->', '_to_')}.mp4"
     render_one(args.method, args.segment,
-              os.path.join(common.OUT_DIR, name), speed=args.speed)
+              os.path.join(common.OUT_DIR, name), speed=args.speed,
+              plain=args.plain)
 
 
 if __name__ == "__main__":
