@@ -1,0 +1,147 @@
+% \begin{table}[!t]
+%   \centering
+%   \renewcommand{\arraystretch}{0.9}
+%   \caption{
+%       RB-Y1 box pickup planning results over the 20-point grid.
+%       Both pipelines plan all 20 points successfully and pass
+%       dense feasibility checks.
+%   }
+%   \label{tab:ruby_results}
+%   \begin{tabular*}{\columnwidth}{@{}l@{\extracolsep{\fill}}cc@{}}
+%   \toprule
+%   \textbf{Metric} & \textbf{Prior Pipeline} & \textbf{Ours} \\
+%   \midrule
+%   \multicolumn{3}{@{}l}{\textit{Time to Plan (s), mean / max}} \\
+%   Median                       & 43.6 & \textbf{17.9} \\
+%   Mean                         & 56.1 & \textbf{19.6} \\
+%   Max                          & 135.0 & \textbf{29.9} \\
+%   \midrule
+%   \multicolumn{3}{@{}l}{\textit{Selected Stages (s), mean / max}} \\
+%   Sampling-Based Planning      & 16.0 / 61.4 & \textbf{1.7 / 2.7} \\
+%   Optimization IK              & 19.4 / 84.0 & \textbf{5.1 / 16.0} \\
+%   Trajectory Opt.\ (Guess)     & 7.0 / 10.2  & \textbf{2.9 / 4.6} \\
+%   Trajectory Opt.\ (Solve)     & 5.6 / 29.6  & 5.7 / 8.9 \\
+%   TOPPRA                       & 5.3 / 6.3   & \textbf{1.7 / 1.8} \\
+%   \midrule
+%   \multicolumn{3}{@{}l}{\textit{Planned Trajectory Quality, mean / max}} \\
+%   Path Length (rad)            & 18.03 / 20.67 & \textbf{17.39 / 19.17} \\
+%   Duration (s)                 & 35.9 / 46.1   & \textbf{31.4 / 34.3} \\
+
+%   \bottomrule
+%   \end{tabular*}
+% \end{table}
+
+
+% \begin{table}[!t]
+%   \centering
+%   \renewcommand{\arraystretch}{0.9}
+%   \caption{
+%       RB-Y1 box pickup planning results over the 20-point grid, comparing ogrrt, mcvamp, task\_space.
+%   }
+%   \label{tab:grid_comparison}
+%   \begin{tabular*}{\columnwidth}{@{}l@{\extracolsep{\fill}}ccc@{}}
+%   \toprule
+%   \textbf{Metric} & \textbf{ogrrt} & \textbf{mcvamp} & \textbf{task\_space} \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Time to Plan (s), mean / max}} \\
+%   Median                       & 37.1 & 20.2 & \textbf{17.6} \\
+%   Mean                         & 46.7 & 21.8 & \textbf{18.4} \\
+%   Max                          & 100.0 & 34.8 & \textbf{27.9} \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Selected Stages (s), mean / max}} \\
+%   Sampling-Based Planning      & 17.4 / 66.5 & 1.3 / 2.6 & 1.3 / 2.7 \\
+%   Optimization IK              & 13.4 / 26.0 & 4.4 / 16.6 & \textbf{4.3 / 16.3} \\
+%   Trajectory Opt.\ (Guess)     & 6.2 / 8.4 & 6.7 / 8.4 & \textbf{4.5 / 6.7} \\
+%   Trajectory Opt.\ (Solve)     & \textbf{3.9 / 19.8} & 4.7 / 18.0 & 4.0 / 7.0 \\
+%   TOPPRA                       & 3.2 / 3.5 & 1.5 / 1.5 & 1.5 / 1.5 \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Planned Trajectory Quality, mean / max}} \\
+%   Path Length (rad)            & 17.74 / 19.46 & \textbf{17.55 / 19.35} & 17.78 / 20.43 \\
+%   Duration (s)                 & 32.7 / 35.5 & \textbf{31.9 / 34.7} & 32.0 / 35.9 \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Constrained-Leg Path Length (rad), mean / max -- raw search vs after TrajOpt}} \\
+%   Before TrajOpt (raw search)  & 6.90 / 7.88 & \textbf{5.07 / 5.91} & 7.10 / 9.33 \\
+%   After TrajOpt + TOPPRA       & 6.21 / 8.13 & \textbf{5.59 / 7.21} & 5.82 / 8.29 \\
+%   \bottomrule
+%   \end{tabular*}
+% \end{table}
+
+% \begin{table}[!t]
+%   \centering
+%   \renewcommand{\arraystretch}{0.9}
+%   \caption{
+%       RB-Y1 box pickup planning results over the 20-point grid, comparing prior pipeline, McVAMP and ReVAMP. This is for direct pick to place
+%   }
+%   \label{tab:grid_comparison}
+%   \begin{tabular*}{\columnwidth}{@{}l@{\extracolsep{\fill}}ccc@{}}
+%   \toprule
+%   \textbf{Metric} & \textbf{ogrrt} & \textbf{mcvamp} & \textbf{task\_space} \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Time to Plan (s), mean / max}} \\
+%   Median                       & 74.9 & 49.9 & \textbf{42.9} \\
+%   Mean                         & 93.8 & 50.7 & \textbf{44.0} \\
+%   Max                          & 218.2 & 70.1 & \textbf{63.5} \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Selected Stages (s), mean / max}} \\
+%   Sampling-Based Planning      & 22.0 / 70.1 & 1.2 / 2.3 & 1.2 / 2.6 \\
+%   Optimization IK              & 20.3 / 33.2 & \textbf{9.1 / 27.6} & 9.2 / 27.2 \\
+%   Trajectory Opt.\ (Guess)     & \textbf{4.7 / 6.8} & 7.3 / 10.8 & 5.1 / 8.6 \\
+%   Trajectory Opt.\ (Solve)     & 28.7 / 180.2 & 28.1 / 42.8 & \textbf{22.3 / 47.1} \\
+%   TOPPRA                       & 2.1 / 2.6 & 0.7 / 1.5 & 0.7 / 0.8 \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Planned Trajectory Quality, mean / max}} \\
+%   Path Length (rad)            & 16.72 / 19.46 & \textbf{16.44 / 17.31} & 19.04 / 24.36 \\
+%   Duration (s)                 & \textbf{29.8 / 35.0} & 35.2 / 71.7 & 44.7 / 83.3 \\
+%   \midrule
+%   \multicolumn{4}{@{}l}{\textit{Constrained-Leg Path Length (rad), mean / max -- raw search vs after TrajOpt}} \\
+%   Before TrajOpt (raw search)  & 8.37 / 12.64 & \textbf{5.07 / 5.89} & 9.60 / 12.53 \\
+%   After TrajOpt + TOPPRA       & 5.12 / 7.75 & \textbf{4.88 / 6.19} & 7.47 / 12.33 \\
+%   \bottomrule
+%   \end{tabular*}
+% \end{table}
+
+% Requires \usepackage{tabularx} in the preamble.
+\begin{table}[!t]
+  \centering
+  \renewcommand{\arraystretch}{0.9}
+  \scriptsize
+  \label{tab:ruby_results}
+  % tabularx's X columns (not plain tabular*'s fixed-width c columns) let a
+  % cell's content wrap onto a second line instead of forcing the table wider
+  % than \columnwidth. The three method headers get an explicit \shortstack
+  % line break rather than relying on hyphenation, which read badly
+  % ("Mc-VAMP"); the data cells wrap on their own where a column is too
+  % narrow for one line.
+  \begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{3.3cm}@{\hspace{2pt}}*{3}{>{\centering\arraybackslash}X}@{}}
+  \toprule
+  \textbf{Metric} & \shortstack{\textbf{IFT}\\\textbf{(baseline)}} & \shortstack{\textbf{Mod. IFT}\\\textbf{+ McVAMP}} & \shortstack{\textbf{Mod. IFT}\\\textbf{+ ReVAMP}} \\
+  \midrule
+  \multicolumn{4}{@{}l}{\textit{Pipeline Result}} \\
+  Success Rate                 & 98\%~(39/40) & 95\%~(38/40) & \textbf{100\%~(40/40)} \\
+  Time to Plan Median (s)      & 50.2 & 36.7 & \textbf{21.2} \\
+  Time to Plan Mean (s)        & 70.2 & 41.8 & \textbf{25.0} \\
+  Time to Plan Max (s)         & 218.2 & 84.6 & \textbf{75.5} \\
+  Path Length (rad)            & 17.25 & \textbf{16.83} & 17.95 \\
+  % Duration (s)                 & \textbf{31.3 / 35.5} & 33.5 / 71.7 & 32.6 / 42.8 \\
+  \midrule
+  \multicolumn{4}{@{}l}{\textit{Aggregated Constrained Planning Statistics}} \\
+  Total Planning Calls         & 142 & \textbf{1696} & \textbf{1696} \\
+  Per-Call Success Rate        & 86\% & 52\% & 47\%  \\
+  Succ.\ Call Time, mean (ms)           & 512.96 & \textbf{3.91} & 8.98 \\
+  Succ.\ Call Time, max (ms)           & 5100.96 & \textbf{19.34} & 34.37 \\
+  Unsucc.\ Call Time, mean (ms)           & 30003.51 & 246.40 & \textbf{8.89} \\
+  Unsucc.\ Call Time, max(ms)           & 30022.4 & 1119.05 & \textbf{121.54} \\
+  \midrule
+  \multicolumn{4}{@{}l}{\textit{Per-Stage Results (s), mean / max}} \\
+  Sampling-Based Planning      & 19.7 / 70.1 & 5.7 / 19.4 & \textbf{1.4 / 2.6} \\
+  Optimization IK              & 16.8 / 33.2 & 7.2 / 27.1 & \textbf{4.5 / 15.8} \\
+  Trajectory Opt.\ (Guess)     & \textbf{5.4 / 8.4} & 6.5 / 9.1 & 6.7 / 8.8 \\
+  Trajectory Opt.\ (Solve)     & 16.3 / 180.2 & 17.5 / 42.2 & \textbf{7.7 / 55.5} \\
+  TOPPRA                       & 2.6 / 3.5 & \textbf{1.1 / 1.5} & 1.4 / 1.5 \\
+  \bottomrule
+  \end{tabularx}
+  \caption{
+      RB-Y1 box pickup planning results: the original IFT pipeline~\cite{cohn2026planning} as a baseline, versus our modified pipeline instantiated with McVAMP and ReVAMP as the constrained-planning backend.
+  }
+
+\end{table}

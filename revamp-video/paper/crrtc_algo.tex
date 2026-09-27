@@ -1,0 +1,37 @@
+\begin{algorithm}[b]
+\begin{footnotesize}
+\caption{Reparameterized RRT-Connect}
+\label{alg:crrtc}
+\begin{algorithmic}[1]
+% \zak{Why is the font so tiny??}
+\Require $q_{a}, q_{b}, \mathcal{F}$
+
+\State $T_{\text{a}} \gets \text{Tree}(q_{a})$, $T_{\text{b}} \gets \text{Tree}(q_{b})$
+
+\While{$\text{iter} < \text{MaxIterations}$}
+    \State $p_{\text{rand}} \gets \text{RandomConfigFromConstraint}()$ \label{algline:crrtc:rand}
+    \State $q^a_{\text{near}} \gets \text{Nearest}(T_{\text{a}}, q_{\text{rand}})$ \label{algline:crrtc:near}
+    \State $q^a_{\text{proj}} \gets \contrib{\text{ParallelConstrainedExtend}}
+    (T_{\text{a}},
+    q^a_{\text{near}}, q_{\text{rand}})$ \label{algline:crrtc:extend}
+    \While{$q^a_{\text{proj}} \neq \textsc{NULL}$}
+        \State $q^b_{\text{near}} \gets \text{Nearest}(T_{\text{b}}, q^a_{\text{proj}})$
+        \State $q^a_{\text{proj}} \gets \contrib{\text{ParallelConstrainedExtend}}(
+        T_{\text{a}},
+        q^a_{\text{proj}}, q^b_{\text{near}})$
+        \If{ $q^a_{\text{proj}} =q^b_{\text{near}} $}
+            \State $\text{P} \gets \text{ExtractPath}(T_{\text{a}},  
+            T_{\text{b}})
+            $
+            \State \Return \textsc{P}
+        \EndIf
+    \EndWhile
+    % \zak{balanced? also dynamic domain or no?}
+    \State $\text{Swap}(T_{\text{a}}, T_{\text{b}})$
+    \State $\text{iter} \gets \text{iter} + 1$
+\EndWhile
+
+\State \Return $\textsc{NULL}$
+\end{algorithmic}
+\end{footnotesize}
+\end{algorithm}

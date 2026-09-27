@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- Local textured replacement for table_dark/table_wide.sdf's real table
+     mesh -- that mesh's own baked UV atlas (multiple non-planar patches,
+     like a photographed real table) doesn't accept a plain tileable photo
+     without visible seams across patch boundaries, so this is a plain
+     UV-mapped slab (make_textured_box.py) referencing a real brushed-metal
+     photo instead, at roughly the same footprint/top-surface height (z=0
+     at the top face, matching table_wide.obj's own convention so
+     table_origin's weld position does not need to change). -->
+<sdf version="1.7">
+  <model name="table">
+    <link name="table_body">
+      <visual name="table_visual">
+        <pose>0 0 -0.02 0 0 0</pose>
+        <geometry><mesh><uri>table_top.obj</uri></mesh></geometry>
+      </visual>
+      <collision name="table_top">
+        <pose>0 0 -0.1 0 0 0</pose>
+        <geometry><box><size>5 5 0.2</size></box></geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

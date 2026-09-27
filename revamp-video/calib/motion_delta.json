@@ -1,0 +1,6 @@
+{
+  "corr": 0.5264446936509957,
+  "delta_s": -0.6666666666666696,
+  "fps": 6.0,
+  "note": "video_time = t_log - video_start_epoch + delta"
+}

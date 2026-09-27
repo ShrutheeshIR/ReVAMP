@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- Makes this directory addressable as package://bimanual_iiwa_media/...
+     from scene.dmd.yaml, so model URIs stay portable across machines
+     (the earlier file:///home/olorin/... absolute URIs only resolved on
+     one checkout). Registered in common.build_scene() alongside the
+     sibling repo's own package.xml. -->
+<package format="2">
+  <name>bimanual_iiwa_media</name>
+  <version>0.0.0</version>
+  <description>Local textured models for the bimanual-iiwa sim video</description>
+  <maintainer email="cohnt@umich.edu">revamp-video</maintainer>
+  <license>MIT</license>
+</package>

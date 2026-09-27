@@ -1,0 +1,13 @@
+# Python dependencies for the revamp video pipeline (see README.md).
+# Versions are the ones the committed calibration was produced with;
+# nothing here is known to be version-sensitive beyond drake >= 1.5x
+# (RenderColorImage with a per-call camera) and opencv >= 4.x.
+drake==1.57.0
+matplotlib==3.11.2
+numpy==2.5.3
+opencv-python-headless==5.0.0.93
+pupil-apriltags==1.0.4.post11
+pycollada==0.9.3
+scipy==1.18.1
+tqdm==4.70.1
+trimesh==5.1.0
