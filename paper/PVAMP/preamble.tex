@@ -1,0 +1,155 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{listings}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{xspace}
+\captionsetup{font=footnotesize}
+\captionsetup[sub]{font=footnotesize}
+
+% Keyword command
+\newcommand{\kw}[1]{\textbf{\textbf{#1}}}
+
+% Listings config:
+\lstset{
+  basicstyle=\footnotesize\ttfamily,
+  escapeinside={|}{|}, % this lets you use |...| for escaping to LaTeX
+  mathescape=true,
+  % You can further customize colors and fonts if you wish
+}
+
+\let\proof\relax
+\let\endproof\relax
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+%% theorems
+\renewcommand\qedsymbol{\newline$\square$}
+\newtheoremstyle{main}
+{0.5em}                                                % space above
+{0.5em}                                                % space below
+{\itshape}                                           % bodyfont
+{0pt}                                                % indent
+{\scshape}                                           % head font
+{}                                                   % head punctuation
+{2pt}                                                % head space
+{\thmname{#1}\thmnumber{ #2}\thmnote{ {\normalfont(#3)}}:} % head spec
+
+\theoremstyle{main}
+\newtheorem{definition}{Def.}[]
+\newtheorem{subdefinition}{Def.}[definition]
+\newtheorem{theorem}{Thm.}[]
+\newtheorem{lemma}{Lem.}[]
+\newtheorem{proposition}{Prop.}[]
+
+\DeclareMathOperator{\FK}{FK}
+\DeclareMathOperator{\IK}{IK}
+\DeclareMathOperator{\Proj}{Proj}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+
+\usepackage{svg}
+\usepackage{adjustbox}
+
+\usepackage{csquotes}
+\usepackage{algorithm}
+\usepackage{algpseudocodex}
+
+
+\usepackage{etoolbox}
+\usepackage[
+	maxbibnames=99,
+	maxcitenames=2,
+	natbib=true,
+	style=numeric-comp,
+	backend=biber,
+	sorting=none,
+	giveninits=true,
+	url=false,
+	doi=false,
+	eprint=false,
+	isbn=false,
+]{biblatex}
+
+\addbibresource{references.bib}
+\renewcommand*{\bibfont}{\footnotesize}
+
+\definecolor{purduegold}{HTML}{C28E0E} % Purdue Academic gold
+
+%% hyperref
+\makeatletter
+\let\NAT@parse\undefined
+\makeatother
+\usepackage[pdfa,colorlinks,bookmarksopen,bookmarksnumbered,allcolors=purduegold]{hyperref}
+
+\usepackage[nameinlink,capitalise]{cleveref}
+\crefformat{line}{#2Ln.~#1#3}
+\Crefformat{line}{#2Ln.~#1#3}
+% algpseudocodex boxes each line in varwidth, which defers \label until cleveref's line type
+% is out of scope, so \cref{} on a line label resolves to the algorithm. Write the entry directly.
+\makeatletter
+\newcommand{\alglabel}[1]{%
+  \cref@old@label{#1}%
+  \protected@write\@auxout{}{\string\newlabel{#1@cref}{{[line][\arabic{ALG@line}][]\theALG@line}{[1][\thepage][]\thepage}{}{}{}}}}
+\makeatother
+
+\crefname{figure}{Fig.}{Figs.}
+\Crefname{figure}{Fig.}{Figs.}
+\crefname{equation}{Eq.}{Eqs.}
+\Crefname{equation}{Eq.}{Eqs.}
+\crefname{section}{Sec.}{Secs.}
+\Crefname{section}{Sec.}{Secs.}
+\crefname{definition}{Def.}{Defs.}
+\Crefname{definition}{Def.}{Defs.}
+\crefname{algorithm}{Alg.}{Algs.}
+\Crefname{algorithm}{Alg.}{Algs.}
+\crefname{table}{Tbl.}{Tbls.}
+\Crefname{table}{Tbl.}{Tbls.}
+\crefname{assumption}{Asm.}{Asms.}
+\Crefname{assumption}{Asm.}{Asms.}
+\crefname{subassumption}{Asm.}{Asms.}
+\Crefname{subassumption}{Asm.}{Asms.}
+\Crefname{problem}{Problem}{Problems}
+\crefname{problem}{Problem}{Problems}
+
+\usepackage{flushend}
+
+% Keyword command
+\newcommand{\zak}[1]{{\color{orange!90} \textbf{ZK:} #1}}
+\newcommand{\shru}[1]{{\color{purple!90} \textbf{SI:} #1}}
+% E69F00
+
+\definecolor{setgreen}{HTML}{66c2a5}
+\definecolor{setorange}{HTML}{D18F00}
+\definecolor{setblue}{HTML}{8da0cb}
+\definecolor{setpurp}{HTML}{e78ac3}
+\definecolor{setorangevariant}{HTML}{cc4400}
+\definecolor{setgreenorange}{HTML}{A6B153}
+
+\definecolor{rblue}{HTML}{4169E1}
+\newcommand{\contrib}[1]{\textcolor{rblue}{#1}}
+
+
+\newcommand{\ompl}{{\color{setpurp}\textbf{OMPL}}\xspace}
+% \newcommand{\omplvariant}[1]{{\color{setgreenorange}\textbf{OMPL #1}}\xspace}
+\newcommand{\mcvamp}{{\color{setorange}\textbf{McVAMP}}\xspace}
+\newcommand{\curobo}{{\color{setgreen}\textbf{CuRobo}}\xspace}
+% \newcommand{\vamparm}{{\color{setpurp}\textbf{VAMP (\arm)}}\xspace}
+\newcommand{\monogram}[3]{{}^{#2}\!#1^{#3}}
+\hyphenation{mcvamp}
+
+% \usepackage{color-edits}
+\usepackage[suppress]{color-edits}
+\definecolor{darkgreen}{rgb}{0.0, 0.5, 0.0}
+\addauthor{si}{blue}
+\addauthor{tc}{darkgreen}
+\addauthor{zk}{red}
+\addauthor{sitotc}{orange}
+\addauthor{todoshru}{brown}

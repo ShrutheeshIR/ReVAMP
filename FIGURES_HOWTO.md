@@ -1,4 +1,4 @@
-# Reproducing the CRAMP figures and video
+# Reproducing the ReVAMP figures and video
 
 Everything the paper's maze figures and supplementary video are made of, from a
 bare clone. The pipeline is **Drake → Meshcat `StaticHtml()` → Blender → Cycles →

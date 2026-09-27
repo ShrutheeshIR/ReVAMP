@@ -1,6 +1,6 @@
 # Figure and animation pipeline
 
-Renders the FR3 tracing the maze, for the CRAMP paper and its supplementary
+Renders the FR3 tracing the maze, for the ReVAMP paper and its supplementary
 video. The route is **Drake → Meshcat `StaticHtml()` → Blender (`meshcat_html_importer`)
 → Cycles → PNG → ffmpeg**, the house style shared with the sibling repos under
 `../ift/`. Deliberately not Drake's `RenderEngineVtk` or `RenderEngineGltfClient`:
@@ -58,6 +58,7 @@ deadlocked on this hardware in the sibling repo, so there is no `--jobs` flag.
 | `--light-strength` | 0.5 | At 1.0 the pale board clips to white and the channels stop reading as recessed; at 0.25 the arm goes muddy. |
 | `--key-elevation` | 30 | Low, so the 9.5 cm walls throw short shadows into the channels and the maze reads as relief. The sibling repo's 45 gives a flat wash on a horizontal subject. |
 | `--lid-variant` | keep | The arm passes through the gaps between lids, so they are part of the task. `cull` reads the maze best; `glass` and `cutaway` exist for when the path needs to be seen through a cap. |
+| `--maze-material` | flat | `flat` is the settled per-role grey/tint. `wood` swaps each role's material for a procedural wood grain (Blender has no dedicated wood node -- built from a Wave texture in BANDS mode, see `blender_common._wood_material`) tinted to the same relative per-role brightness, and each `--*-color` override still applies as the tint. Fully procedural, no image asset. |
 | `--trace-lift` | 0.0015 m | The trace is otherwise coincident with geometry it sits on. |
 | `--z-fight-nudge` | 1e-4 m | 60 of the 124 planks share the plane z = 0.1025 exactly. Exactly coplanar faces render as black patches under Cycles' CPU/Embree backend. |
 | ghost poses | 4–5 | The FR3's upper links barely move while tracing, so six or more stack into an unreadable mass while only the wrist separates. |

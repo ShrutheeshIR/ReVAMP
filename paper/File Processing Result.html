@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<!-- saved from url=(0040)https://arxiv.org/submit/8126318/process -->
+<html lang="en" class="js"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <script>document.documentElement.classList.add('js');</script>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>File Processing Result</title>
+  <link rel="stylesheet" type="text/css" media="screen" href="./File Processing Result_files/arXivCat.css">
+  
+  <link rel="stylesheet" type="text/css" media="screen" href="./File Processing Result_files/arxiv-header-footer.css">
+     <link rel="stylesheet" type="text/css" media="screen" href="./File Processing Result_files/submission.css">
+  
+     <script src="./File Processing Result_files/jquery.js" type="text/javascript"></script>
+     <script src="./File Processing Result_files/js.cookie.min.js" type="text/javascript"></script>
+     <script src="./File Processing Result_files/toggle-guide.js" type="text/javascript"></script>
+  
+ </head>
+ <body>
+
+   <div class="flex-wrap-footer">
+    
+    
+    <div class="ds-announcement" id="announcement-banner" role="region" aria-label="Announcement" data-banner-name="spinout-nonprofit">
+      <img class="ds-announcement-glyph" src="./File Processing Result_files/smileybones-small.svg" alt="" aria-hidden="true">
+      <span class="ds-announcement-text">arXiv is now an independent nonprofit!</span>
+      <a class="ds-announcement-link" href="https://info.arxiv.org/about">Learn more</a>
+      <button type="button" class="ds-announcement-close" aria-label="Dismiss announcement">×</button>
+    </div>
+    <a href="https://arxiv.org/submit/8126318/process#content" class="ds-skip-link">Skip to main content</a>
+    <header class="ds-site-header is-collapsible">
+      <a href="https://arxiv.org/" class="ds-site-header-logo" aria-label="archive home">
+        <img src="./File Processing Result_files/arxiv-logo-primary-light.svg" alt="archive">
+      </a>
+      <button type="button" id="ds-nav-toggle" class="ds-site-header-nav-toggle" aria-label="Open menu" aria-controls="ds-site-header-nav" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <nav class="ds-site-header-nav" id="ds-site-header-nav" aria-label="Main navigation">
+        <a id="arxiv-search-toggle" href="https://arxiv.org/search" aria-controls="arxiv-search-overlay" aria-expanded="false">
+          <svg class="ds-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          Search
+        </a>
+        <a href="https://arxiv.org/user/create">Submit</a>
+        <a href="https://info.arxiv.org/about/donate.html">Donate</a>
+        <span class="ds-site-header-divider" aria-hidden="true"></span>
+        
+        <a href="https://arxiv.org/user" class="ds-site-header-login">My Account</a>
+        <a href="https://arxiv.org/logout">Logout</a>      </nav>
+    </header>
+
+    <div class="arxiv-search-overlay" id="arxiv-search-overlay" hidden="">
+      <div class="arxiv-search-panel" role="search">
+        <form method="GET" action="https://arxiv.org/search">
+          <label for="arxiv-search-input" class="is-sr-only">Search arXiv</label>
+          <input type="text" name="query" id="arxiv-search-input" autocomplete="off" placeholder="Search papers by title, author, abstract, or ID...">
+          <input type="hidden" name="searchtype" value="all">
+        </form>
+        <div class="arxiv-search-hint">Press Enter to search · <a href="https://arxiv.org/search/advanced">Advanced search</a></div>
+      </div>
+    </div>
+    
+    <div id="content">
+          <!-- Display status and error messages -->
+                        <div id="pbarcontainer">
+<div id="processbar">
+    <a class="rbutton" href="https://arxiv.org/submit/8126318/start">Start</a>
+        &nbsp;&nbsp;&gt;&gt;&nbsp;&nbsp;
+    <a class="rbutton" href="https://arxiv.org/submit/8126318/addfiles">Add Files</a>
+        &nbsp;&nbsp;&gt;&gt;&nbsp;&nbsp;
+    
+    <a class="rbutton" href="https://arxiv.org/submit/8126318/reviewfiles">Review Files</a>
+        &nbsp;&nbsp;&gt;&gt;&nbsp;&nbsp;
+    
+    <a class="rsbutton" href="https://arxiv.org/submit/8126318/process">Process</a>
+        &nbsp;&nbsp;&gt;&gt;&nbsp;&nbsp;
+    <a class="rbutton" href="https://arxiv.org/submit/8126318/metadata">Metadata</a>
+        &nbsp;&nbsp;&gt;&gt;&nbsp;&nbsp;
+    <a class="rbutton" href="https://arxiv.org/submit/8126318/preview">Preview</a>
+</div>
+</div>
+
+
+
+<br>
+<fieldset class="sub_box">
+      <legend>Submission Processing</legend>
+<p>
+
+   <a class="linkbutton" id="reprocess" href="https://arxiv.org/submit/8126318/reprocess">Reprocess</a>
+
+</p>
+
+
+  
+      <p><em>There was a problem compiling your source. Please refer to log for details.</em></p>
+    arXiv's automated TeX processing has failed to process your source. The 5 most common mistakes causing this are:<br>
+      <br>
+      1. Mixed figure file formats. If you are using PDFLaTeX then all figures must be .pdf, .jpg, or .png formats. If your document uses (La)TeX all figures must be .ps or .eps. arXiv does not perform figure file conversion for you, please <a href="https://info.arxiv.org/help/faq/mistakes#mixed">ensure your files are converted to the appropriate format</a> before uploading.<br>
+      2. Default hyperref failures ("Option clash for package hyperref") are not a reason to report a failure to arXiv. Continue scrolling in the log to find the specific errors that are being flagged.<br>
+      3. Missing customized or differing version of <a href="https://info.arxiv.org/help/faq/mistakes#missing_macro">style files</a>.<br>
+      4. Missing, misnamed, or local complete paths to <a href="https://info.arxiv.org/help/faq/mistakes#abs_filenames">figure files</a>. arXiv's file system is case sensitive.<br>
+      <br>
+  To upload or edit your files before reprocessing return to the <a href="https://arxiv.org/submit/8126318/addfiles">add files step</a>.<br>
+  <br>
+   The TeX Log appears below.
+   <br>
+   Need help?
+   <br>
+   You may wish to hit "Ctrl + F" ("Command + F" on a Mac) to search for "error" on this page.
+   <br>
+   If you are unsure of what your specific failure is please review our <a href="https://info.arxiv.org/help/faq/mistakes">help pages</a>,  <a href="https://arxiv-org.atlassian.net/wiki/spaces/AUS/overview">knowledge base</a> or searching the internet for your specific processing messages.
+   <br>
+   Or <a href="https://arxiv.org/support/submission_help">contact us</a> citing <b>submit/8126318</b>. We will work with authors to help resolve TeX processing issues and if we determine that there is not a ready solution we will consider allowing PDF instead of TeX. We try to provide same day replies for submission help Monday-Friday.
+</fieldset>
+
+<div class="process-log-container"><br>
+<h1>Compilation Summary</h1><br>
+Our system failed to process your submission using pdflatex.  Status: <span class="tex-fatal">[FAILED]</span><br>
+<br>
+<br>
+Files that were processed as part of this submission:<br>
+<br>
+    root.tex =&gt; root.pdf  <span class="tex-fatal">[FAILED]</span><br>
+...at step "second_run:0"<br>
+...reason for failure: "compiler run returned error code"<br>
+<br>
+<br>
+Our system <span class="tex-fatal">failed</span> to generate a PDF.<br>
+<br>
+<h1>Selected Errors and Warnings</h1><br>
+<br>
+Errors for root.tex:<br>
+<ul>Missing file (1 total)<br>
+<ul><li>	A file required by your submission was not found.<br>
+	Package biblatex Info: ... <span class="tex-fatal">file 'numeric-comp.dbx' not found</span>.<br>
+	Please upload any missing files, or correct any file naming issues, and then reprocess your submission.</li><br>
+<br>
+</ul></ul><ul>Lower level TeX Errors (10 total)<br>
+<ul>	<li>	Package svg Error: File `robot_arm_fig_composite_start_eefs_all_svg-tex.pdf' is missing..<br>
+	<span class="tex-warning">./root.tex:347: Package svg Error: File `robot_arm_fig_composite_start_eefs_all_svg-tex.pdf' is missing.</span><br>
+	Please refer to details in the log.</li><br>
+	<li>	Package svg Error: File `robot_arm_fig_composite_start_eefs_all_svg-tex.pdf_tex' is missing..<br>
+	<span class="tex-warning">./root.tex:347: Package svg Error: File `robot_arm_fig_composite_start_eefs_all_svg-tex.pdf_tex' is missing.</span><br>
+	Please refer to details in the log.</li><br>
+	<li>	Package svg Error: File `total_time_ecdf_svg-tex.pdf' is missing..<br>
+	<span class="tex-warning">./root.tex:503: Package svg Error: File `total_time_ecdf_svg-tex.pdf' is missing.</span><br>
+	Please refer to details in the log.</li><br>
+<li>...</li><br>
+</ul></ul><h1>Compilation Log (for the last run)</h1><br>
+<div class="tex-key"><b>Key for Highlighted (La)TeX Compilation Log:</b> <br>
+	<span class="tex-fatal">Severe warnings/errors.</span>'<br>
+	<span class="tex-warning">Warnings deemed important</span>'<br>
+	<span class="tex-suggestion">General warnings/errors from packages.</span>'<br>
+	<span class="tex-ignore">Warnings/Errors deemed unimportant. Example: undefined references in first TeX run.</span>'<br>
+	<span class="tex-success">Indicates positive event, does not guarantee overall success</span><br>
+	<span class="tex-info">Informational markup</span><br>
+	<span class="tex-help">References to arXiv help pages or other documentation.</span><br>
+</div><div class="tex-log"><br>
+<span class="tex-fatal">Log for root.tex at step 'second_run:0': [FAILED]</span><br>
+<br>
+--<br>
+# pdflatex: /usr/local/texlive/2025/bin/x86_64-linux/pdflatex -interaction=batchmode -recorder -no-parse-first-line -file-line-error root.tex<br>
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.8.3)  24 SEP 2026 17:32<br>
+entering extended mode<br>
+ file:line:error style messages enabled.<br>
+**root.tex<br>
+(./root.tex<br>
+LaTeX2e &lt;2025-06-01&gt; patch level 1<br>
+L3 programming layer &lt;2025-07-20&gt;<br>
+(./IEEEconf.cls<br>
+Document Class: ieeeconf 2016/4/23 revision V1.6b by Pradeep Misra<br>
+\@IEEEtrantmpdimenA=\dimen148<br>
+\@IEEEtrantmpdimenB=\dimen149<br>
+\@IEEEtrantmpcountA=\count275<br>
+\@IEEEtrantmpcountB=\count276<br>
+\@IEEEtrantmptoksA=\toks17<br>
+LaTeX Font Info:    Trying to load font information for OT1+ptm on input line 794.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ot1ptm.fd<br>
+File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.<br>
+)<br>
+\@IEEEnormalsizefontbaselineskip=\skip49<br>
+-- This is a 10 point document.<br>
+\normalsizebaselineskip=\skip50<br>
+\normaljot=\skip51<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;5&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;5&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;7&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;7&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;8&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;8&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;9&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;9&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;10&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;10&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;11&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;11&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;12&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;12&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;16&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;16&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;20&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;20&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size &lt;24&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 1113.<br>
+LaTeX Font Info:    Font shape `OT1/ptm/bx/it' in size &lt;24&gt; not available<br>
+(Font)              Font shape `OT1/ptm/b/it' tried instead on input line 1113.<br>
+\IEEEilabelindentA=\dimen150<br>
+\IEEEilabelindentB=\dimen151<br>
+\IEEEilabelindent=\dimen152<br>
+\IEEEelabelindent=\dimen153<br>
+\IEEEdlabelindent=\dimen154<br>
+\labelindent=\dimen155<br>
+\IEEEiednormlabelsep=\dimen156<br>
+\IEEEiedmathlabelsep=\dimen157<br>
+\IEEEiedtopsep=\skip52<br>
+\c@section=\count277<br>
+\c@subsection=\count278<br>
+\c@subsubsection=\count279<br>
+\c@paragraph=\count280<br>
+\c@IEEEsubequation=\count281<br>
+\abovecaptionskip=\skip53<br>
+\belowcaptionskip=\skip54<br>
+\c@figure=\count282<br>
+\c@table=\count283<br>
+\@IEEEeqnnumcols=\count284<br>
+\@IEEEeqncolcnt=\count285<br>
+\@IEEEtmpitemindent=\dimen158<br>
+\c@biography=\count286<br>
+\@IEEEtranrubishbin=\box53<br>
+)<br>
+** ATTENTION: Overriding command lockouts (line 2).<br>
+** ATTENTION: Overriding IEEE standard margins (line 3).<br>
+(./preamble.tex (/usr/local/texlive/2025/texmf-dist/tex/latex/base/inputenc.sty<br>
+Package: inputenc 2024/02/08 v1.3d Input encoding file<br>
+\inpenc@prehook=\toks18<br>
+\inpenc@posthook=\toks19<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/base/fontenc.sty<br>
+Package: fontenc 2024/12/21 v2.1c Standard LaTeX package<br>
+LaTeX Font Info:    Trying to load font information for T1+ptm on input line 116.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1ptm.fd<br>
+File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/generic/babel/babel.sty<br>
+Package: babel 2025/07/13 v25.11 The multilingual framework for LuaLaTeX, pdfLaTeX and XeLaTeX<br>
+\babel@savecnt=\count287<br>
+LaTeX Encoding Info:    Redeclaring text command \ij (encoding OT1) on input line 2045.<br>
+LaTeX Encoding Info:    Redeclaring text command \IJ (encoding OT1) on input line 2047.<br>
+LaTeX Encoding Info:    Redeclaring text command \ij (encoding T1) on input line 2049.<br>
+LaTeX Encoding Info:    Redeclaring text command \IJ (encoding T1) on input line 2050.<br>
+LaTeX Encoding Info:    Ignoring declaration for text command \ij (encoding ?) on input line 2051.<br>
+LaTeX Encoding Info:    Ignoring declaration for text command \IJ (encoding ?) on input line 2053.<br>
+LaTeX Encoding Info:    Ignoring declaration for text command \SS (encoding ?) on input line 2078.<br>
+\U@D=\dimen159<br>
+\l@unhyphenated=\language90<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/babel/txtbabel.def)<br>
+\bbl@readstream=\read2<br>
+\bbl@dirlevel=\count288<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/babel-english/english.ldf<br>
+Language: english 2017/06/06 v3.3r English support from the babel system<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/babel/locale/en/babel-english.tex<br>
+Package babel Info: Importing font and identification data for english<br>
+(babel)             from babel-en.ini. Reported on input line 12.<br>
+)<br>
+Package babel Info: Hyphen rules for 'canadian' set to \l@english<br>
+(babel)             (\language0). Reported on input line 102.<br>
+Package babel Info: Hyphen rules for 'australian' set to \l@ukenglish<br>
+(babel)             (\language22). Reported on input line 105.<br>
+Package babel Info: Hyphen rules for 'newzealand' set to \l@ukenglish<br>
+(babel)             (\language22). Reported on input line 108.<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/booktabs/booktabs.sty<br>
+Package: booktabs 2020/01/12 v1.61803398 Publication quality tables<br>
+\heavyrulewidth=\dimen160<br>
+\lightrulewidth=\dimen161<br>
+\cmidrulewidth=\dimen162<br>
+\belowrulesep=\dimen163<br>
+\belowbottomsep=\dimen164<br>
+\aboverulesep=\dimen165<br>
+\abovetopsep=\dimen166<br>
+\cmidrulesep=\dimen167<br>
+\cmidrulekern=\dimen168<br>
+\defaultaddspace=\dimen169<br>
+\@cmidla=\count289<br>
+\@cmidlb=\count290<br>
+\@aboverulesep=\dimen170<br>
+\@belowrulesep=\dimen171<br>
+\@thisruleclass=\count291<br>
+\@lastruleclass=\count292<br>
+\@thisrulewidth=\dimen172<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/tools/tabularx.sty<br>
+Package: tabularx 2023/12/11 v2.12a `tabularx' package (DPC)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/tools/array.sty<br>
+Package: array 2025/06/08 v2.6j Tabular extension package (FMi)<br>
+\col@sep=\dimen173<br>
+\ar@mcellbox=\box54<br>
+\extrarowheight=\dimen174<br>
+\NC@list=\toks20<br>
+\extratabsurround=\skip55<br>
+\backup@length=\skip56<br>
+\ar@cellbox=\box55<br>
+)<br>
+\TX@col@width=\dimen175<br>
+\TX@old@table=\dimen176<br>
+\TX@old@col=\dimen177<br>
+\TX@target=\dimen178<br>
+\TX@delta=\dimen179<br>
+\TX@cols=\count293<br>
+\TX@ftn=\toks21<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/multirow/multirow.sty<br>
+Package: multirow 2024/11/12 v2.9 Span multiple rows of a table<br>
+\multirow@colwidth=\skip57<br>
+\multirow@cntb=\count294<br>
+\multirow@dima=\skip58<br>
+\bigstrutjot=\dimen180<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.sty (/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/keyval.sty<br>
+Package: keyval 2022/05/29 v1.15 key=value parser (DPC)<br>
+\KV@toks@=\toks22<br>
+)<br>
+\lst@mode=\count295<br>
+\lst@gtempboxa=\box56<br>
+\lst@token=\toks23<br>
+\lst@length=\count296<br>
+\lst@currlwidth=\dimen181<br>
+\lst@column=\count297<br>
+\lst@pos=\count298<br>
+\lst@lostspace=\dimen182<br>
+\lst@width=\dimen183<br>
+\lst@newlines=\count299<br>
+\lst@lineno=\count300<br>
+\lst@maxwidth=\dimen184<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstpatch.sty<br>
+File: lstpatch.sty 2024/09/23 1.10c (Carsten Heinz)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/lstmisc.sty<br>
+File: lstmisc.sty 2024/09/23 1.10c (Carsten Heinz)<br>
+\c@lstnumber=\count301<br>
+\lst@skipnumbers=\count302<br>
+\lst@framebox=\box57<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/listings/listings.cfg<br>
+File: listings.cfg 2024/09/23 1.10c listings configuration<br>
+))<br>
+Package: listings 2024/09/23 1.10c (Carsten Heinz)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/caption/subcaption.sty<br>
+Package: subcaption 2023/07/28 v1.6b Sub-captions (AR)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/caption/caption.sty<br>
+Package: caption 2023/08/05 v3.6o Customizing captions (AR)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/caption/caption3.sty<br>
+Package: caption3 2023/07/31 v2.4d caption3 kernel (AR)<br>
+\caption@tempdima=\dimen185<br>
+\captionmargin=\dimen186<br>
+\caption@leftmargin=\dimen187<br>
+\caption@rightmargin=\dimen188<br>
+\caption@width=\dimen189<br>
+\caption@indent=\dimen190<br>
+\caption@parindent=\dimen191<br>
+\caption@hangindent=\dimen192<br>
+Package caption Info: Unknown document class (or package),<br>
+(caption)             standard defaults will be used.<br>
+Package caption Info: \@makecaption = \long macro:#1#2-&gt;\ifx \@captype \@IEEEtablestring \begin {center}{\footnotesize #1}\\{\footnotesize \scshape #2}\end {center}\@IEEEtablecaptionsepspace \else \@IEEEfigurecaptionsepspace \setbox \@tempboxa \hbox {\footnotesize #1.~~ #2}\ifdim \wd \@tempboxa &gt;\hsize \setbox \@tempboxa \hbox {\footnotesize #1.~~ }\parbox [t]{\hsize }{\footnotesize \noindent \unhbox \@tempboxa #2}\else \ifcenterfigcaptions \hbox to\hsize {\footnotesize \hfil \box \@tempboxa \hfil }\else \hbox to\hsize {\footnotesize \box \@tempboxa \hfil }\fi \fi \fi  on input line 1175.<br>
+)<br>
+<br>
+Package caption <span class="tex-warning">Warning</span>: Unknown document class (or package),<br>
+(caption)                standard defaults will be used.<br>
+See the caption package documentation for explanation.<br>
+<br>
+\c@caption@flags=\count303<br>
+\c@continuedfloat=\count304<br>
+Package caption Info: listings package is loaded.<br>
+)<br>
+Package caption Info: New subtype `subfigure' on input line 238.<br>
+\c@subfigure=\count305<br>
+Package caption Info: New subtype `subtable' on input line 238.<br>
+\c@subtable=\count306<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/xcolor/xcolor.sty<br>
+Package: xcolor 2024/09/29 v3.02 LaTeX color extensions (UK)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-cfg/color.cfg<br>
+File: color.cfg 2016/01/02 v1.6 sample color configuration<br>
+)<br>
+Package xcolor Info: Driver file: pdftex.def on input line 274.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-def/pdftex.def<br>
+File: pdftex.def 2024/04/13 v1.2c Graphics/color driver for pdftex<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/mathcolor.ltx)<br>
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1349.<br>
+Package xcolor Info: Model `hsb' substituted by `rgb' on input line 1353.<br>
+Package xcolor Info: Model `RGB' extended on input line 1365.<br>
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1367.<br>
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1368.<br>
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1369.<br>
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1370.<br>
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1371.<br>
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1372.<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/tools/xspace.sty<br>
+Package: xspace 2014/10/28 v1.13 Space after command names (DPC,MH)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsmath.sty<br>
+Package: amsmath 2025/06/16 v2.17y AMS math features<br>
+\@mathmargin=\skip59<br>
+For additional information on amsmath, use the `?' option.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amstext.sty<br>
+Package: amstext 2024/11/17 v2.01 AMS text<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsgen.sty<br>
+File: amsgen.sty 1999/11/30 v2.0 generic functions<br>
+\@emptytoks=\toks24<br>
+\ex@=\dimen193<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsbsy.sty<br>
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols<br>
+\pmbraise@=\dimen194<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/amsmath/amsopn.sty<br>
+Package: amsopn 2022/04/08 v2.04 operator names<br>
+)<br>
+\inf@bad=\count307<br>
+LaTeX Info: Redefining \frac on input line 233.<br>
+\uproot@=\count308<br>
+\leftroot@=\count309<br>
+LaTeX Info: Redefining \overline on input line 398.<br>
+LaTeX Info: Redefining \colon on input line 409.<br>
+\classnum@=\count310<br>
+\DOTSCASE@=\count311<br>
+LaTeX Info: Redefining \ldots on input line 495.<br>
+LaTeX Info: Redefining \dots on input line 498.<br>
+LaTeX Info: Redefining \cdots on input line 619.<br>
+\Mathstrutbox@=\box58<br>
+\strutbox@=\box59<br>
+LaTeX Info: Redefining \big on input line 721.<br>
+LaTeX Info: Redefining \Big on input line 722.<br>
+LaTeX Info: Redefining \bigg on input line 723.<br>
+LaTeX Info: Redefining \Bigg on input line 724.<br>
+\big@size=\dimen195<br>
+LaTeX Font Info:    Redeclaring font encoding OML on input line 742.<br>
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 743.<br>
+\macc@depth=\count312<br>
+LaTeX Info: Redefining \bmod on input line 904.<br>
+LaTeX Info: Redefining \pmod on input line 909.<br>
+LaTeX Info: Redefining \smash on input line 939.<br>
+LaTeX Info: Redefining \relbar on input line 969.<br>
+LaTeX Info: Redefining \Relbar on input line 970.<br>
+\c@MaxMatrixCols=\count313<br>
+\dotsspace@=\muskip17<br>
+\c@parentequation=\count314<br>
+\dspbrk@lvl=\count315<br>
+\tag@help=\toks25<br>
+\row@=\count316<br>
+\column@=\count317<br>
+\maxfields@=\count318<br>
+\andhelp@=\toks26<br>
+\eqnshift@=\dimen196<br>
+\alignsep@=\dimen197<br>
+\tagshift@=\dimen198<br>
+\tagwidth@=\dimen199<br>
+\totwidth@=\dimen256<br>
+\lineht@=\dimen257<br>
+\@envbody=\toks27<br>
+\multlinegap=\skip60<br>
+\multlinetaggap=\skip61<br>
+\mathdisplay@stack=\toks28<br>
+LaTeX Info: Redefining \[ on input line 2949.<br>
+LaTeX Info: Redefining \] on input line 2950.<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/amssymb.sty<br>
+Package: amssymb 2013/01/14 v3.01 AMS font symbols<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/amsfonts.sty<br>
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support<br>
+\symAMSa=\mathgroup4<br>
+\symAMSb=\mathgroup5<br>
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.<br>
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'<br>
+(Font)                  U/euf/m/n --&gt; U/euf/b/n on input line 106.<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/amscls/amsthm.sty<br>
+Package: amsthm 2020/05/29 v2.20.6<br>
+\thm@style=\toks29<br>
+\thm@bodyfont=\toks30<br>
+\thm@headfont=\toks31<br>
+\thm@notefont=\toks32<br>
+\thm@headpunct=\toks33<br>
+\thm@preskip=\skip62<br>
+\thm@postskip=\skip63<br>
+\thm@headsep=\skip64<br>
+\dth@everypar=\toks34<br>
+)<br>
+\c@definition=\count319<br>
+\c@subdefinition=\count320<br>
+\c@theorem=\count321<br>
+\c@lemma=\count322<br>
+\c@proposition=\count323<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/graphicx.sty<br>
+Package: graphicx 2024/12/31 v1.2e Enhanced LaTeX Graphics (DPC,SPQR)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/graphics.sty<br>
+Package: graphics 2024/08/06 v1.4g Standard LaTeX Graphics (DPC,SPQR)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/graphics/trig.sty<br>
+Package: trig 2023/12/02 v1.11 sin cos tan (DPC)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/graphics-cfg/graphics.cfg<br>
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration<br>
+)<br>
+Package graphics Info: Driver file: pdftex.def on input line 106.<br>
+)<br>
+\Gin@req@height=\dimen258<br>
+\Gin@req@width=\dimen259<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/siunitx/siunitx.sty<br>
+Package: siunitx 2025-07-09 v3.4.14 A comprehensive (SI) units package<br>
+\l__siunitx_number_uncert_offset_int=\count324<br>
+\l__siunitx_number_exponent_fixed_int=\count325<br>
+\l__siunitx_number_min_decimal_int=\count326<br>
+\l__siunitx_number_min_integer_int=\count327<br>
+\l__siunitx_number_round_precision_int=\count328<br>
+\l__siunitx_number_lower_threshold_int=\count329<br>
+\l__siunitx_number_upper_threshold_int=\count330<br>
+\l__siunitx_number_group_first_int=\count331<br>
+\l__siunitx_number_group_size_int=\count332<br>
+\l__siunitx_number_group_minimum_int=\count333<br>
+\l__siunitx_angle_tmp_dim=\dimen260<br>
+\l__siunitx_angle_marker_box=\box60<br>
+\l__siunitx_angle_unit_box=\box61<br>
+\l__siunitx_compound_count_int=\count334<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/translations/translations.sty<br>
+Package: translations 2022/02/05 v1.12 internationalization of LaTeX2e packages (CN)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/etoolbox/etoolbox.sty<br>
+Package: etoolbox 2025/02/11 v2.5l e-TeX tools for LaTeX (JAW)<br>
+\etb@tempcnta=\count335<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty<br>
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/infwarerr/infwarerr.sty<br>
+Package: infwarerr 2019/12/03 v1.5 Providing info/<span class="tex-warning">warning</span>/error messages (HO)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/iftex/iftex.sty<br>
+Package: iftex 2024/12/12 v1.0g TeX engine tests<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty<br>
+Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)<br>
+)<br>
+Package pdftexcmds Info: \pdf@primitive is available.<br>
+Package pdftexcmds Info: \pdf@ifprimitive is available.<br>
+Package pdftexcmds Info: \pdfdraftmode found.<br>
+))<br>
+\l__siunitx_table_tmp_box=\box62<br>
+\l__siunitx_table_tmp_dim=\dimen261<br>
+\l__siunitx_table_column_width_dim=\dimen262<br>
+\l__siunitx_table_integer_box=\box63<br>
+\l__siunitx_table_decimal_box=\box64<br>
+\l__siunitx_table_uncert_box=\box65<br>
+\l__siunitx_table_before_box=\box66<br>
+\l__siunitx_table_after_box=\box67<br>
+\l__siunitx_table_before_dim=\dimen263<br>
+\l__siunitx_table_carry_dim=\dimen264<br>
+\l__siunitx_unit_tmp_int=\count336<br>
+\l__siunitx_unit_position_int=\count337<br>
+\l__siunitx_unit_total_int=\count338<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/svg/svg.sty<br>
+Package: svg 2020/11/26 v2.02k (include SVG pictures)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/koma-script/scrbase.sty<br>
+Package: scrbase 2025/06/04 v3.45 KOMA-Script package (KOMA-Script-independent basics and keyval usage)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/koma-script/scrlfile.sty<br>
+Package: scrlfile 2025/06/04 v3.45 KOMA-Script package (file load hooks)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/koma-script/scrlfile-hook.sty<br>
+Package: scrlfile-hook 2025/06/04 v3.45 KOMA-Script package (using LaTeX hooks)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/koma-script/scrlogo.sty<br>
+Package: scrlogo 2025/06/04 v3.45 KOMA-Script package (logo)<br>
+)))<br>
+Applying: [2021/05/01] Usage of raw or classic option list on input line 254.<br>
+Already applied: [0000/00/00] Usage of raw or classic option list on input line 370.<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/trimspaces/trimspaces.sty<br>
+Package: trimspaces 2009/09/17 v1.1 Trim spaces around a token list<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/tools/shellesc.sty<br>
+Package: shellesc 2023/07/08 v1.0d unified shell escape interface for LaTeX<br>
+<br>
+Package shellesc <span class="tex-warning">Warning</span>: Shell escape disabled on input line 73.<br>
+<br>
+)<br>
+\c@svg@param@lastpage=\count339<br>
+\svg@box=\box68<br>
+\c@svg@param@currpage=\count340<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/transparent/transparent.sty<br>
+Package: transparent 2025-06-23 v1.6 Transparency with color stacks<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/transparent/transparent-nometadata.sty<br>
+Package: transparent-nometadata 2025-06-23 v1.6 Transparency via pdfTeX's color stack (HO)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/auxhook/auxhook.sty<br>
+Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)<br>
+))) (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/systemlayer/pgfsys.sty (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex<br>
+\pgfutil@everybye=\toks35<br>
+\pgfutil@tempdima=\dimen265<br>
+\pgfutil@tempdimb=\dimen266<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfutil-latex.def<br>
+\pgfutil@abb=\box69<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfrcs.code.tex (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/pgf.revision.tex)<br>
+Package: pgfrcs 2023-01-15 v3.1.10 (3.1.10)<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys.code.tex<br>
+Package: pgfsys 2023-01-15 v3.1.10 (3.1.10)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex<br>
+\pgfkeys@pathtoks=\toks36<br>
+\pgfkeys@temptoks=\toks37<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfkeyslibraryfiltered.code.tex<br>
+\pgfkeys@tmptoks=\toks38<br>
+))<br>
+\pgf@x=\dimen267<br>
+\pgf@y=\dimen268<br>
+\pgf@xa=\dimen269<br>
+\pgf@ya=\dimen270<br>
+\pgf@xb=\dimen271<br>
+\pgf@yb=\dimen272<br>
+\pgf@xc=\dimen273<br>
+\pgf@yc=\dimen274<br>
+\pgf@xd=\dimen275<br>
+\pgf@yd=\dimen276<br>
+\w@pgf@writea=\write3<br>
+\r@pgf@reada=\read3<br>
+\c@pgf@counta=\count341<br>
+\c@pgf@countb=\count342<br>
+\c@pgf@countc=\count343<br>
+\c@pgf@countd=\count344<br>
+\t@pgf@toka=\toks39<br>
+\t@pgf@tokb=\toks40<br>
+\t@pgf@tokc=\toks41<br>
+\pgf@sys@id@count=\count345<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg<br>
+File: pgf.cfg 2023-01-15 v3.1.10 (3.1.10)<br>
+)<br>
+Driver file for pgf: pgfsys-pdftex.def<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-pdftex.def<br>
+File: pgfsys-pdftex.def 2023-01-15 v3.1.10 (3.1.10)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-common-pdf.def<br>
+File: pgfsys-common-pdf.def 2023-01-15 v3.1.10 (3.1.10)<br>
+))) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsyssoftpath.code.tex<br>
+File: pgfsyssoftpath.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgfsyssoftpath@smallbuffer@items=\count346<br>
+\pgfsyssoftpath@bigbuffer@items=\count347<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsysprotocol.code.tex<br>
+File: pgfsysprotocol.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/adjustbox/adjustbox.sty<br>
+Package: adjustbox 2025/02/26 v1.3c Adjusting TeX boxes (trim, clip, ...)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/xkeyval/xkeyval.sty<br>
+Package: xkeyval 2022/06/16 v2.9 package option processing (HA)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/xkeyval/xkeyval.tex (/usr/local/texlive/2025/texmf-dist/tex/generic/xkeyval/xkvutils.tex<br>
+\XKV@toks=\toks42<br>
+\XKV@tempa@toks=\toks43<br>
+)<br>
+\XKV@depth=\count348<br>
+File: xkeyval.tex 2014/12/03 v2.7a key=value parser (HA)<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/adjustbox/adjcalc.sty<br>
+Package: adjcalc 2012/05/16 v1.1 Provides advanced setlength with multiple back-ends (calc, etex, pgfmath)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/adjustbox/trimclip.sty<br>
+Package: trimclip 2025/02/21 v1.2a Trim and clip general TeX material<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/collectbox/collectbox.sty<br>
+Package: collectbox 2022/10/17 v0.4c Collect macro arguments as boxes<br>
+\collectedbox=\box70<br>
+)<br>
+\tc@llx=\dimen277<br>
+\tc@lly=\dimen278<br>
+\tc@urx=\dimen279<br>
+\tc@ury=\dimen280<br>
+Package trimclip Info: Using driver 'tc-pdftex.def'.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/adjustbox/tc-pdftex.def<br>
+File: tc-pdftex.def 2025/02/26 v2.3 Clipping driver for pdftex<br>
+))<br>
+\adjbox@Width=\dimen281<br>
+\adjbox@Height=\dimen282<br>
+\adjbox@Depth=\dimen283<br>
+\adjbox@Totalheight=\dimen284<br>
+\adjbox@pwidth=\dimen285<br>
+\adjbox@pheight=\dimen286<br>
+\adjbox@pdepth=\dimen287<br>
+\adjbox@ptotalheight=\dimen288<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/ifoddpage/ifoddpage.sty<br>
+Package: ifoddpage 2022/10/18 v1.2 Conditionals for odd/even page detection<br>
+\c@checkoddpage=\count349<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/varwidth/varwidth.sty<br>
+Package: varwidth 2009/03/30 ver 0.92;  Variable-width minipages<br>
+\@vwid@box=\box71<br>
+\sift@deathcycles=\count350<br>
+\@vwid@loff=\dimen289<br>
+\@vwid@roff=\dimen290<br>
+)<br>
+==&gt; First Aid for varwidth.sty applied!<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/csquotes/csquotes.sty<br>
+Package: csquotes 2024-04-04 v5.2o context-sensitive quotations (JAW)<br>
+\csq@reset=\count351<br>
+\csq@gtype=\count352<br>
+\csq@glevel=\count353<br>
+\csq@qlevel=\count354<br>
+\csq@maxlvl=\count355<br>
+\csq@tshold=\count356<br>
+\csq@ltx@everypar=\toks44<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/csquotes/csquotes.def<br>
+File: csquotes.def 2024-04-04 v5.2o csquotes generic definitions (JAW)<br>
+)<br>
+Package csquotes Info: Trying to load configuration file 'csquotes.cfg'...<br>
+Package csquotes Info: ... configuration file loaded successfully.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/csquotes/csquotes.cfg<br>
+File: csquotes.cfg <br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/algorithms/algorithm.sty<br>
+Package: algorithm 2009/08/24 v0.1 Document Style `algorithm' - floating environment<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/float/float.sty<br>
+Package: float 2001/11/08 v1.3d Float enhancements (AL)<br>
+\c@float@type=\count357<br>
+\float@exts=\toks45<br>
+\float@box=\box72<br>
+\@float@everytoks=\toks46<br>
+\@floatcapt=\box73<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/base/ifthen.sty<br>
+Package: ifthen 2024/03/16 v1.1e Standard LaTeX ifthen package (DPC)<br>
+)<br>
+\@float@every@algorithm=\toks47<br>
+\c@algorithm=\count358<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/algpseudocodex/algpseudocodex.sty<br>
+Package: algpseudocodex 2025-04-16 v1.2.0 pseudocode typesetting<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/kvoptions/kvoptions.sty<br>
+Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty<br>
+Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/algorithmicx/algorithmicx.sty<br>
+Package: algorithmicx 2005/04/27 v1.2 Algorithmicx<br>
+Document Style algorithmicx 1.2 - a greatly improved `algorithmic' style<br>
+\c@ALG@line=\count359<br>
+\c@ALG@rem=\count360<br>
+\c@ALG@nested=\count361<br>
+\ALG@tlm=\skip65<br>
+\ALG@thistlm=\skip66<br>
+\c@ALG@Lnr=\count362<br>
+\c@ALG@blocknr=\count363<br>
+\c@ALG@storecount=\count364<br>
+\c@ALG@tmpcounter=\count365<br>
+\ALG@tmplength=\skip67<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/fifo-stack/fifo-stack.sty<br>
+Package: fifo-stack 2014/03/24 v1.0 Multi-FIFO/stack system<br>
+\tmp@fifo@stack@top=\count366<br>
+\tmp@fifo@stack@bottom=\count367<br>
+\tmp@fifo@stack@size=\count368<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/tabto-ltx/tabto.sty<br>
+Package: tabto 2018/12/28  v 1.4  Another tabbing mechanism<br>
+\CurrentLineWidth=\dimen291<br>
+\TabPrevPos=\dimen292<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/totcount/totcount.sty<br>
+Package: totcount 2011/01/25 v1.2 package for gettingthe total value of LaTeX counters<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty<br>
+Package: pgf 2023-01-15 v3.1.10 (3.1.10)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/basiclayer/pgfcore.sty (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcore.code.tex<br>
+Package: pgfcore 2023-01-15 v3.1.10 (3.1.10)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathutil.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathparser.code.tex<br>
+\pgfmath@dimen=\dimen293<br>
+\pgfmath@count=\count369<br>
+\pgfmath@box=\box74<br>
+\pgfmath@toks=\toks48<br>
+\pgfmath@stack@operand=\toks49<br>
+\pgfmath@stack@operation=\toks50<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.basic.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.trigonometric.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.random.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.comparison.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.base.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.round.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.misc.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.integerarithmetics.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathcalc.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfloat.code.tex<br>
+\c@pgfmathroundto@lastzeros=\count370<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfint.code.tex) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepoints.code.tex<br>
+File: pgfcorepoints.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@picminx=\dimen294<br>
+\pgf@picmaxx=\dimen295<br>
+\pgf@picminy=\dimen296<br>
+\pgf@picmaxy=\dimen297<br>
+\pgf@pathminx=\dimen298<br>
+\pgf@pathmaxx=\dimen299<br>
+\pgf@pathminy=\dimen300<br>
+\pgf@pathmaxy=\dimen301<br>
+\pgf@xx=\dimen302<br>
+\pgf@xy=\dimen303<br>
+\pgf@yx=\dimen304<br>
+\pgf@yy=\dimen305<br>
+\pgf@zx=\dimen306<br>
+\pgf@zy=\dimen307<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathconstruct.code.tex<br>
+File: pgfcorepathconstruct.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@path@lastx=\dimen308<br>
+\pgf@path@lasty=\dimen309<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathusage.code.tex<br>
+File: pgfcorepathusage.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@shorten@end@additional=\dimen310<br>
+\pgf@shorten@start@additional=\dimen311<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorescopes.code.tex<br>
+File: pgfcorescopes.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgfpic=\box75<br>
+\pgf@hbox=\box76<br>
+\pgf@layerbox@main=\box77<br>
+\pgf@picture@serial@count=\count371<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoregraphicstate.code.tex<br>
+File: pgfcoregraphicstate.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgflinewidth=\dimen312<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransformations.code.tex<br>
+File: pgfcoretransformations.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@pt@x=\dimen313<br>
+\pgf@pt@y=\dimen314<br>
+\pgf@pt@temp=\dimen315<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorequick.code.tex<br>
+File: pgfcorequick.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreobjects.code.tex<br>
+File: pgfcoreobjects.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathprocessing.code.tex<br>
+File: pgfcorepathprocessing.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorearrows.code.tex<br>
+File: pgfcorearrows.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgfarrowsep=\dimen316<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreshade.code.tex<br>
+File: pgfcoreshade.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@max=\dimen317<br>
+\pgf@sys@shading@range@num=\count372<br>
+\pgf@shadingcount=\count373<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreimage.code.tex<br>
+File: pgfcoreimage.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreexternal.code.tex<br>
+File: pgfcoreexternal.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgfexternal@startupbox=\box78<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorelayers.code.tex<br>
+File: pgfcorelayers.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransparency.code.tex<br>
+File: pgfcoretransparency.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepatterns.code.tex<br>
+File: pgfcorepatterns.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorerdf.code.tex<br>
+File: pgfcorerdf.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+))) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/modules/pgfmoduleshapes.code.tex<br>
+File: pgfmoduleshapes.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgfnodeparttextbox=\box79<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/modules/pgfmoduleplot.code.tex<br>
+File: pgfmoduleplot.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-0-65.sty<br>
+Package: pgfcomp-version-0-65 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@nodesepstart=\dimen318<br>
+\pgf@nodesepend=\dimen319<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-1-18.sty<br>
+Package: pgfcomp-version-1-18 2023-01-15 v3.1.10 (3.1.10)<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/utilities/pgffor.sty (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/utilities/pgfkeys.sty (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex)) (/usr/local/texlive/2025/texmf-dist/tex/latex/pgf/math/pgfmath.sty (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex)) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgffor.code.tex<br>
+Package: pgffor 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgffor@iter=\dimen320<br>
+\pgffor@skip=\dimen321<br>
+\pgffor@stack=\toks51<br>
+\pgffor@toks=\toks52<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex<br>
+Package: tikz 2023-01-15 v3.1.10 (3.1.10)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandlers.code.tex<br>
+File: pgflibraryplothandlers.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgf@plot@mark@count=\count374<br>
+\pgfplotmarksize=\dimen322<br>
+)<br>
+\tikz@lastx=\dimen323<br>
+\tikz@lasty=\dimen324<br>
+\tikz@lastxsaved=\dimen325<br>
+\tikz@lastysaved=\dimen326<br>
+\tikz@lastmovetox=\dimen327<br>
+\tikz@lastmovetoy=\dimen328<br>
+\tikzleveldistance=\dimen329<br>
+\tikzsiblingdistance=\dimen330<br>
+\tikz@figbox=\box80<br>
+\tikz@figbox@bg=\box81<br>
+\tikz@tempbox=\box82<br>
+\tikz@tempbox@bg=\box83<br>
+\tikztreelevel=\count375<br>
+\tikznumberofchildren=\count376<br>
+\tikznumberofcurrentchild=\count377<br>
+\tikz@fig@count=\count378<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/modules/pgfmodulematrix.code.tex<br>
+File: pgfmodulematrix.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+\pgfmatrixcurrentrow=\count379<br>
+\pgfmatrixcurrentcolumn=\count380<br>
+\pgf@matrix@numberofcolumns=\count381<br>
+)<br>
+\tikz@expandcount=\count382<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex<br>
+File: tikzlibrarytopaths.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+))) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarycalc.code.tex<br>
+File: tikzlibrarycalc.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibraryfit.code.tex<br>
+File: tikzlibraryfit.code.tex 2023-01-15 v3.1.10 (3.1.10)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/tikzmark/tikzlibrarytikzmark.code.tex<br>
+File: tikzlibrarytikzmark.code.tex 2022/08/24 v1.15 TikZ library for marking positions in a document<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/l3kernel/expl3.sty<br>
+Package: expl3 2025-07-20 L3 programming layer (loader) <br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def<br>
+File: l3backend-pdftex.def 2025-06-09 L3 backend support: PDF output (pdfTeX)<br>
+\l__color_backend_stack_int=\count383<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/l3packages/l3keys2e/l3keys2e.sty<br>
+Package: l3keys2e 2024-08-16 LaTeX2e option processing using LaTeX3 keys<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/l3packages/xparse/xparse.sty<br>
+Package: xparse 2024-08-16 L3 Experimental document command parser<br>
+)<br>
+\l__sn_x_dim=\dimen331<br>
+\l__sn_y_dim=\dimen332<br>
+\l__sn_xa_dim=\dimen333<br>
+\l__sn_ya_dim=\dimen334<br>
+)<br>
+\algpx@codeBoxInnerSep=\skip68<br>
+\algpx@codeBoxSep=\skip69<br>
+\algpx@codeBoxOuterSep=\skip70<br>
+\algpx@indShiftX=\skip71<br>
+\algpx@indStartShiftY=\skip72<br>
+\algpx@indEndShiftY=\skip73<br>
+\algpx@indXLineLength=\skip74<br>
+\algpx@minIndDist=\skip75<br>
+\algpx@oldPos=\skip76<br>
+\algpx@newPos=\skip77<br>
+\algpx@tmpLen=\skip78<br>
+\algpx@currentLineskiplimit=\skip79<br>
+\algpx@currentLineskip=\skip80<br>
+\algpx@indStartY=\skip81<br>
+\algpx@indEndY=\skip82<br>
+\algpx@indStartX=\skip83<br>
+\algpx@extraShiftX=\skip84<br>
+\algpx@minTopPageHeight=\skip85<br>
+\algpx@minBotPageDepth=\skip86<br>
+\c@algpx@codeBoxCount=\count384<br>
+\c@algpx@nestedCBoxCount=\count385<br>
+\c@algpx@startedBoxesCount=\count386<br>
+\c@algpx@endedBoxesCount=\count387<br>
+\c@algpx@nestedBoxedStringCount=\count388<br>
+\c@algpx@nestedBoxedStringMaxCount=\count389<br>
+\c@algpx@indentCount=\count390<br>
+\c@algpx@lastIndentEnded=\count391<br>
+\c@algpx@pageCount=\count392<br>
+\c@algpx@tmpCount=\count393<br>
+\algpx@boxedStringBox=\box84<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/biblatex.sty<br>
+Package: biblatex 2025/07/10 v3.21 programmable bibliographies (PK/MW)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/logreq/logreq.sty<br>
+Package: logreq 2010/08/04 v1.0 xml request logger<br>
+\lrq@indent=\count394<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/logreq/logreq.def<br>
+File: logreq.def 2010/08/04 v1.0 logreq spec v1.0<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/url/url.sty<br>
+\Urlmuskip=\muskip18<br>
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.<br>
+)<br>
+\c@tabx@nest=\count395<br>
+\c@listtotal=\count396<br>
+\c@listcount=\count397<br>
+\c@liststart=\count398<br>
+\c@liststop=\count399<br>
+\c@citecount=\count400<br>
+\c@citetotal=\count401<br>
+\c@multicitecount=\count402<br>
+\c@multicitetotal=\count403<br>
+\c@instcount=\count404<br>
+\c@maxnames=\count405<br>
+\c@minnames=\count406<br>
+\c@maxitems=\count407<br>
+\c@minitems=\count408<br>
+\c@citecounter=\count409<br>
+\c@maxcitecounter=\count410<br>
+\c@savedcitecounter=\count411<br>
+\c@uniquelist=\count412<br>
+\c@uniquename=\count413<br>
+\c@refsection=\count414<br>
+\c@refsegment=\count415<br>
+\c@maxextratitle=\count416<br>
+\c@maxextratitleyear=\count417<br>
+\c@maxextraname=\count418<br>
+\c@maxextradate=\count419<br>
+\c@maxextraalpha=\count420<br>
+\c@abbrvpenalty=\count421<br>
+\c@highnamepenalty=\count422<br>
+\c@lownamepenalty=\count423<br>
+\c@maxparens=\count424<br>
+\c@parenlevel=\count425<br>
+\blx@tempcnta=\count426<br>
+\blx@tempcntb=\count427<br>
+\blx@tempcntc=\count428<br>
+\c@blx@maxsection=\count429<br>
+\blx@maxsegment@0=\count430<br>
+\blx@notetype=\count431<br>
+\blx@parenlevel@text=\count432<br>
+\blx@parenlevel@foot=\count433<br>
+\blx@sectionciteorder@0=\count434<br>
+\blx@sectionciteorderinternal@0=\count435<br>
+\blx@entrysetcounter=\count436<br>
+\blx@biblioinstance=\count437<br>
+\labelnumberwidth=\skip87<br>
+\labelalphawidth=\skip88<br>
+\biblabelsep=\skip89<br>
+\bibitemsep=\skip90<br>
+\bibnamesep=\skip91<br>
+\bibinitsep=\skip92<br>
+\bibparsep=\skip93<br>
+\bibhang=\skip94<br>
+\blx@bcfin=\read4<br>
+\blx@bcfout=\write4<br>
+\blx@langwohyphens=\language91<br>
+\c@mincomprange=\count438<br>
+\c@maxcomprange=\count439<br>
+\c@mincompwidth=\count440<br>
+Package biblatex Info: Trying to load biblatex default data model...<br>
+Package biblatex Info: ... file 'blx-dm.def' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/blx-dm.def<br>
+File: blx-dm.def 2025/07/10 v3.21 biblatex datamodel (PK/MW)<br>
+)<br>
+Package biblatex Info: Trying to load biblatex style data model...<br>
+Package biblatex Info: ... <span class="tex-fatal">file 'numeric-comp.dbx' not found</span>.<br>
+Package biblatex Info: Trying to load biblatex custom data model...<br>
+Package biblatex Info: ... <span class="tex-ignore">file 'biblatex-dm.cfg' not found</span>.<br>
+\c@afterword=\count441<br>
+\c@savedafterword=\count442<br>
+\c@annotator=\count443<br>
+\c@savedannotator=\count444<br>
+\c@author=\count445<br>
+\c@savedauthor=\count446<br>
+\c@bookauthor=\count447<br>
+\c@savedbookauthor=\count448<br>
+\c@commentator=\count449<br>
+\c@savedcommentator=\count450<br>
+\c@editor=\count451<br>
+\c@savededitor=\count452<br>
+\c@editora=\count453<br>
+\c@savededitora=\count454<br>
+\c@editorb=\count455<br>
+\c@savededitorb=\count456<br>
+\c@editorc=\count457<br>
+\c@savededitorc=\count458<br>
+\c@foreword=\count459<br>
+\c@savedforeword=\count460<br>
+\c@holder=\count461<br>
+\c@savedholder=\count462<br>
+\c@introduction=\count463<br>
+\c@savedintroduction=\count464<br>
+\c@namea=\count465<br>
+\c@savednamea=\count466<br>
+\c@nameb=\count467<br>
+\c@savednameb=\count468<br>
+\c@namec=\count469<br>
+\c@savednamec=\count470<br>
+\c@translator=\count471<br>
+\c@savedtranslator=\count472<br>
+\c@shortauthor=\count473<br>
+\c@savedshortauthor=\count474<br>
+\c@shorteditor=\count475<br>
+\c@savedshorteditor=\count476<br>
+\c@labelname=\count477<br>
+\c@savedlabelname=\count478<br>
+\c@institution=\count479<br>
+\c@savedinstitution=\count480<br>
+\c@lista=\count481<br>
+\c@savedlista=\count482<br>
+\c@listb=\count483<br>
+\c@savedlistb=\count484<br>
+\c@listc=\count485<br>
+\c@savedlistc=\count486<br>
+\c@listd=\count487<br>
+\c@savedlistd=\count488<br>
+\c@liste=\count489<br>
+\c@savedliste=\count490<br>
+\c@listf=\count491<br>
+\c@savedlistf=\count492<br>
+\c@location=\count493<br>
+\c@savedlocation=\count494<br>
+\c@organization=\count495<br>
+\c@savedorganization=\count496<br>
+\c@origlocation=\count497<br>
+\c@savedoriglocation=\count498<br>
+\c@origpublisher=\count499<br>
+\c@savedorigpublisher=\count500<br>
+\c@publisher=\count501<br>
+\c@savedpublisher=\count502<br>
+\c@language=\count503<br>
+\c@savedlanguage=\count504<br>
+\c@origlanguage=\count505<br>
+\c@savedoriglanguage=\count506<br>
+\c@pageref=\count507<br>
+\c@savedpageref=\count508<br>
+\shorthandwidth=\skip95<br>
+\shortjournalwidth=\skip96<br>
+\shortserieswidth=\skip97<br>
+\shorttitlewidth=\skip98<br>
+\shortauthorwidth=\skip99<br>
+\shorteditorwidth=\skip100<br>
+\locallabelnumberwidth=\skip101<br>
+\locallabelalphawidth=\skip102<br>
+\localshorthandwidth=\skip103<br>
+\localshortjournalwidth=\skip104<br>
+\localshortserieswidth=\skip105<br>
+\localshorttitlewidth=\skip106<br>
+\localshortauthorwidth=\skip107<br>
+\localshorteditorwidth=\skip108<br>
+Package biblatex Info: Trying to load compatibility code...<br>
+Package biblatex Info: ... file 'blx-compat.def' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/blx-compat.def<br>
+File: blx-compat.def 2025/07/10 v3.21 biblatex compatibility (PK/MW)<br>
+)<br>
+Package biblatex Info: Trying to load generic definitions...<br>
+Package biblatex Info: ... file 'biblatex.def' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/biblatex.def<br>
+File: biblatex.def 2025/07/10 v3.21 biblatex compatibility (PK/MW)<br>
+\c@textcitecount=\count509<br>
+\c@textcitetotal=\count510<br>
+\c@textcitemaxnames=\count511<br>
+\c@biburlbigbreakpenalty=\count512<br>
+\c@biburlbreakpenalty=\count513<br>
+\c@biburlnumpenalty=\count514<br>
+\c@biburlucpenalty=\count515<br>
+\c@biburllcpenalty=\count516<br>
+\biburlbigskip=\muskip19<br>
+\biburlnumskip=\muskip20<br>
+\biburlucskip=\muskip21<br>
+\biburllcskip=\muskip22<br>
+\c@smartand=\count517<br>
+)<br>
+Package biblatex Info: Trying to load natbib compatibility...<br>
+Package biblatex Info: ... file 'blx-natbib.def' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/blx-natbib.def<br>
+File: blx-natbib.def 2025/07/10 v3.21 biblatex compatibility (PK/MW)<br>
+Package biblatex Info: Delimiter 'nameyeardelim' in context '' already defined, overwriting.<br>
+)<br>
+Package biblatex Info: Trying to load bibliography style 'numeric-comp'...<br>
+Package biblatex Info: ... file 'numeric-comp.bbx' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/bbx/numeric-comp.bbx<br>
+File: numeric-comp.bbx 2025/07/10 v3.21 biblatex bibliography style (PK/MW)<br>
+Package biblatex Info: Trying to load bibliography style 'numeric'...<br>
+Package biblatex Info: ... file 'numeric.bbx' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/bbx/numeric.bbx<br>
+File: numeric.bbx 2025/07/10 v3.21 biblatex bibliography style (PK/MW)<br>
+Package biblatex Info: Trying to load bibliography style 'standard'...<br>
+Package biblatex Info: ... file 'standard.bbx' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/bbx/standard.bbx<br>
+File: standard.bbx 2025/07/10 v3.21 biblatex bibliography style (PK/MW)<br>
+\c@bbx:relatedcount=\count518<br>
+\c@bbx:relatedtotal=\count519<br>
+)))<br>
+Package biblatex Info: Trying to load citation style 'numeric-comp'...<br>
+Package biblatex Info: ... file 'numeric-comp.cbx' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/cbx/numeric-comp.cbx<br>
+File: numeric-comp.cbx 2025/07/10 v3.21 biblatex citation style (PK/MW)<br>
+\c@cbx@tempcnta=\count520<br>
+\c@cbx@tempcntb=\count521<br>
+\c@cbx@tempcntc=\count522<br>
+\c@cbx@tempcntd=\count523<br>
+Package biblatex Info: Redefining '\cite'.<br>
+Package biblatex Info: Redefining '\parencite'.<br>
+Package biblatex Info: Redefining '\footcite'.<br>
+Package biblatex Info: Redefining '\footcitetext'.<br>
+Package biblatex Info: Redefining '\smartcite'.<br>
+Package biblatex Info: Redefining '\supercite'.<br>
+Package biblatex Info: Redefining '\textcite'.<br>
+Package biblatex Info: Redefining '\textcites'.<br>
+Package biblatex Info: Redefining '\cites'.<br>
+Package biblatex Info: Redefining '\parencites'.<br>
+Package biblatex Info: Redefining '\smartcites'.<br>
+)<br>
+Package biblatex Info: Trying to load configuration file...<br>
+Package biblatex Info: ... file 'biblatex.cfg' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/biblatex.cfg<br>
+File: biblatex.cfg <br>
+)<br>
+Package biblatex Info: Input encoding 'utf8' detected.<br>
+Package biblatex Info: Document encoding is UTF8 ....<br>
+Package biblatex Info: ... and expl3<br>
+(biblatex)             2025-07-20 L3 programming layer (loader) <br>
+(biblatex)             is new enough (at least 2020/04/06),<br>
+(biblatex)             setting 'casechanger=expl3'.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/blx-case-expl3.sty<br>
+Package: blx-case-expl3 2025/07/10 v3.21 expl3 case changing code for biblatex<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/hyperref/hyperref.sty<br>
+Package: hyperref 2025-07-12 v7.01o Hypertext links for LaTeX<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty<br>
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/pdfescape/pdfescape.sty<br>
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/hycolor/hycolor.sty<br>
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/hyperref/nameref.sty<br>
+Package: nameref 2025-06-21 v2.57 Cross-referencing by name of section<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/refcount/refcount.sty<br>
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty<br>
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)<br>
+)<br>
+\c@section@level=\count524<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/stringenc/stringenc.sty<br>
+Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO)<br>
+)<br>
+\@linkdim=\dimen335<br>
+\Hy@linkcounter=\count525<br>
+\Hy@pagecounter=\count526<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/hyperref/pd1enc.def<br>
+File: pd1enc.def 2025-07-12 v7.01o Hyperref: PDFDocEncoding definition (HO)<br>
+Now handling font encoding PD1 ...<br>
+... <span class="tex-warning">no UTF-8 mapping file</span> for font encoding PD1<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/generic/intcalc/intcalc.sty<br>
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)<br>
+)<br>
+\Hy@SavedSpaceFactor=\count527<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/hyperref/puenc.def<br>
+File: puenc.def 2025-07-12 v7.01o Hyperref: PDF Unicode definition (HO)<br>
+Now handling font encoding PU ...<br>
+... <span class="tex-warning">no UTF-8 mapping file</span> for font encoding PU<br>
+)<br>
+Package hyperref Info: Option `pdfa' set `true' on input line 4066.<br>
+Package hyperref Info: Option `colorlinks' set `true' on input line 4066.<br>
+Package hyperref Info: Option `bookmarksopen' set `true' on input line 4066.<br>
+Package hyperref Info: Option `bookmarksnumbered' set `true' on input line 4066.<br>
+Package hyperref Info: Hyper figures OFF on input line 4195.<br>
+Package hyperref Info: Link nesting OFF on input line 4200.<br>
+Package hyperref Info: Hyper index ON on input line 4203.<br>
+Package hyperref Info: Plain pages OFF on input line 4210.<br>
+Package hyperref Info: Backreferencing OFF on input line 4215.<br>
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.<br>
+Package hyperref Info: Bookmarks ON on input line 4462.<br>
+\c@Hy@tempcnt=\count528<br>
+LaTeX Info: Redefining \url on input line 4801.<br>
+\XeTeXLinkMargin=\dimen336<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/bitset/bitset.sty<br>
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty<br>
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO)<br>
+))<br>
+\Fld@menulength=\count529<br>
+\Field@Width=\dimen337<br>
+\Fld@charsize=\dimen338<br>
+Package hyperref Info: Hyper figures OFF on input line 6078.<br>
+Package hyperref Info: Link nesting OFF on input line 6083.<br>
+Package hyperref Info: Hyper index ON on input line 6086.<br>
+Package hyperref Info: backreferencing OFF on input line 6093.<br>
+Package hyperref Info: Link coloring ON on input line 6096.<br>
+Package hyperref Info: Link coloring with OCG OFF on input line 6103.<br>
+Package hyperref Info: PDF/A mode ON on input line 6106.<br>
+\Hy@abspage=\count530<br>
+\c@Item=\count531<br>
+\c@Hfootnote=\count532<br>
+)<br>
+Package hyperref Info: Driver (autodetected): hpdftex.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/hyperref/hpdftex.def<br>
+File: hpdftex.def 2025-07-12 v7.01o Hyperref driver for pdfTeX<br>
+\Fld@listcount=\count533<br>
+\c@bookmark@seq@number=\count534<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/<span class="tex-ignore">rerunfilecheck/rerunfilecheck.sty</span><br>
+Package: <span class="tex-fatal">rerun</span>filecheck 2025-06-21 v1.11 <span class="tex-fatal">Rerun</span> checks for auxiliary files (HO)<br>
+(/usr/local/texlive/2025/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty<br>
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)<br>
+)<br>
+Package uniquecounter Info: New unique counter `<span class="tex-fatal">rerun</span>filecheck' on input line 284.<br>
+)<br>
+\Hy@SectionHShift=\skip109<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/cleveref/cleveref.sty<br>
+Package: cleveref 2018/03/27 v0.21.4 Intelligent cross-referencing<br>
+Package cleveref Info: `hyperref' support loaded on input line 2370.<br>
+LaTeX Info: Redefining \cref on input line 2370.<br>
+LaTeX Info: Redefining \Cref on input line 2370.<br>
+LaTeX Info: Redefining \crefrange on input line 2370.<br>
+LaTeX Info: Redefining \Crefrange on input line 2370.<br>
+LaTeX Info: Redefining \cpageref on input line 2370.<br>
+LaTeX Info: Redefining \Cpageref on input line 2370.<br>
+LaTeX Info: Redefining \cpagerefrange on input line 2370.<br>
+LaTeX Info: Redefining \Cpagerefrange on input line 2370.<br>
+LaTeX Info: Redefining \labelcref on input line 2370.<br>
+LaTeX Info: Redefining \labelcpageref on input line 2370.<br>
+Package cleveref Info: `amsthm' support loaded on input line 3026.<br>
+Package cleveref Info: `algorithmicx' support loaded on input line 3120.<br>
+Package cleveref Info: `listings' support loaded on input line 3131.<br>
+Package cleveref Info: always capitalise cross-reference names on input line 7825.<br>
+Package cleveref Info: include cross-reference names in hyperlinks on input line 7836.<br>
+Package cleveref Info: include cross-reference names in hyperlinks on input line 7852.<br>
+Package cleveref Info: always capitalise cross-reference names on input line 7852.<br>
+)<br>
+==&gt; First Aid for cleveref.sty applied!<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/sttools/flushend.sty<br>
+Package: flushend 2025/06/18 v4.3 Balancing columns in twocolumn mode (ST)<br>
+\flushend@@lastskip@a=\skip110<br>
+\flushend@@lastskip@b=\skip111<br>
+\flushend@@lastnode=\count535<br>
+\var@@loop@iter=\count536<br>
+\var@@temp@spread=\dimen339<br>
+\var@@temp@a=\dimen340<br>
+\var@@temp@loop=\dimen341<br>
+\flushend@@page@rule=\dimen342<br>
+\flushend@@varbox@lastpage=\box85<br>
+\flushend@@varbox@a=\box86<br>
+\flushend@@varbox@c=\box87<br>
+\flushend@@tempbox@a=\box88<br>
+\flushend@@tempbox@c=\box89<br>
+\flushend@@floatbox=\box90<br>
+\@viper=\box91<br>
+\hold@viper=\box92<br>
+\atColsBreak=\toks53<br>
+\atColsEnd=\toks54<br>
+\oldbreak@skip=\dimen343<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/color-edits/color-edits.sty<br>
+Package: color-edits 2020/09/18 v1.1 Class for annotating authors' edits in color<br>
+))<br>
+Package csquotes Info: Checking for multilingual support...<br>
+Package csquotes Info: ... found 'babel' package.<br>
+Package csquotes Info: Adjusting default style.<br>
+Package csquotes Info: Redefining alias 'default' -&gt; 'english'.<br>
+(./root.aux<br>
+\c@algpx@indentEndPage-0@totc=\count537<br>
+\c@algpx@indentEndPage-1@totc=\count538<br>
+\c@algpx@indentEndPage-2@totc=\count539<br>
+\c@algpx@indentEndPage-3@totc=\count540<br>
+\c@algpx@indentEndPage-4@totc=\count541<br>
+\c@algpx@indentEndPage-5@totc=\count542<br>
+\c@algpx@indentEndPage-6@totc=\count543<br>
+\c@algpx@indentEndPage-7@totc=\count544<br>
+\c@algpx@indentEndCoordIndex-4@totc=\count545<br>
+\c@algpx@indentEndPage-8@totc=\count546<br>
+\c@algpx@indentEndPage-9@totc=\count547<br>
+\c@algpx@indentEndCoordIndex-0@totc=\count548<br>
+)<br>
+\openout1 = `root.aux'.<br>
+<br>
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 30.<br>
+LaTeX Font Info:    ... okay on input line 30.<br>
+\c@lstlisting=\count549<br>
+Package caption Info: Begin \AtBeginDocument code.<br>
+Package caption Info: float package is loaded.<br>
+Package caption Info: hyperref package is loaded.<br>
+Package caption Info: End \AtBeginDocument code.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/context/base/mkii/supp-pdf.mkii<br>
+[Loading MPS to PDF converter (version 2006.09.02).]<br>
+\scratchcounter=\count550<br>
+\scratchdimen=\dimen344<br>
+\scratchbox=\box93<br>
+\nofMPsegments=\count551<br>
+\nofMParguments=\count552<br>
+\everyMPshowfont=\toks55<br>
+\MPscratchCnt=\count553<br>
+\MPscratchDim=\dimen345<br>
+\MPnumerator=\count554<br>
+\makeMPintoPDFobject=\count555<br>
+\everyMPtoPDFconversion=\toks56<br>
+) (/usr/local/texlive/2025/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty<br>
+Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/grfext/grfext.sty<br>
+Package: grfext 2019/12/03 v1.3 Manage graphics extensions (HO)<br>
+)<br>
+<br>
+Package epstopdf <span class="tex-warning">Warning</span>: Shell escape feature is not enabled.<br>
+<br>
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.<br>
+Package grfext Info: Graphics extension search list:<br>
+(grfext)             [.pdf,.png,.jpg,.mps,.jpeg,.jbig2,.jb2,.PDF,.PNG,.JPG,.JPEG,.JBIG2,.JB2,.eps]<br>
+(grfext)             \AppendGraphicsExtensions on input line 504.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg<br>
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live<br>
+)) (/usr/local/texlive/2025/texmf-dist/tex/latex/translations/translations-basic-dictionary-english.trsl<br>
+File: translations-basic-dictionary-english.trsl (english translation file `translations-basic-dictionary')<br>
+)<br>
+Package translations Info: loading dictionary `translations-basic-dictionary' for `english'. on input line 30.<br>
+Package biblatex Info: Trying to load language 'english'...<br>
+Package biblatex Info: ... file 'english.lbx' found.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/biblatex/lbx/english.lbx<br>
+File: english.lbx 2025/07/10 v3.21 biblatex localization (PK/MW)<br>
+)<br>
+Package biblatex Info: Input encoding 'utf8' detected.<br>
+Package biblatex Info: Automatic encoding selection.<br>
+(biblatex)             Assuming data encoding 'utf8'.<br>
+\openout4 = `root.bcf'.<br>
+<br>
+Package biblatex Info: Trying to load bibliographic data...<br>
+Package biblatex Info: ... file 'root.bbl' found.<br>
+(./root.bbl)<br>
+Package biblatex Info: Reference section=0 on input line 30.<br>
+Package biblatex Info: Reference segment=0 on input line 30.<br>
+Package hyperref Info: Link coloring ON on input line 30.<br>
+(./root.out) (./root.out)<br>
+\@outlinefile=\write5<br>
+\openout5 = `root.out'.<br>
+<br>
+LaTeX Font Info:    Trying to load font information for U+msa on input line 32.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsa.fd<br>
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A<br>
+)<br>
+LaTeX Font Info:    Trying to load font information for U+msb on input line 32.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/amsfonts/umsb.fd<br>
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B<br>
+)<br>
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 32.<br>
+(/usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/t1pcr.fd<br>
+File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.<br>
+)<br>
+<br>
+&lt;images/ruby1.png, id=60, 509.905pt x 734.745pt&gt;<br>
+File: images/ruby1.png Graphic file (type png)<br>
+&lt;use images/ruby1.png&gt;<br>
+Package pdftex.def Info: images/ruby1.png  used on input line 72.<br>
+(pdftex.def)             Requested size: 110.57239pt x 159.32365pt.<br>
+&lt;images/ruby2.png, id=61, 509.905pt x 734.745pt&gt;<br>
+File: images/ruby2.png Graphic file (type png)<br>
+&lt;use images/ruby2.png&gt;<br>
+Package pdftex.def Info: images/ruby2.png  used on input line 74.<br>
+(pdftex.def)             Requested size: 110.57239pt x 159.32365pt.<br>
+<br>
+Underfull \vbox (badness 3009) has occurred while \output is active []<br>
+<br>
+<br>
+<br>
+[1{/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/base/8r.enc}<br>
+<br>
+<br>
+ &lt;./images/ruby1.png (PNG copy)&gt; &lt;./images/ruby2.png (PNG copy)&gt;]<br>
+<br>
+<br>
+<br>
+[2]<br>
+<br>
+<br>
+<br>
+[3]<br>
+<br>
+Package svg <span class="tex-warning">Warning</span>: You didn't enable `shell escape' (or `write18')<br>
+(svg)                so it wasn't possible to launch the Inkscape export<br>
+(svg)                for `images/methodology/robot_arm_fig_composite_start_eefs_all.svg' on input line 347.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:347: Package svg Error: File `robot_arm_fig_composite_start_eefs_all_svg-tex.pdf' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.347     \includesvg[width=1.0\linewidth]{images/methodology/robot_arm_fig_composite_start_eefs_all.svg}<br>
+                                                                                                         <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/robot_arm_fig_composite_start_eefs_all_svg-tex.pdf'<br>
+although `images/methodology/robot_arm_fig_composite_start_eefs_all.svg' was found.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:347: Package svg Error: File `robot_arm_fig_composite_start_eefs_all_svg-tex.pdf_tex' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.347     \includesvg[width=1.0\linewidth]{images/methodology/robot_arm_fig_composite_start_eefs_all.svg}<br>
+                                                                                                         <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/robot_arm_fig_composite_start_eefs_all_svg-tex.pdf_tex'<br>
+although `images/methodology/robot_arm_fig_composite_start_eefs_all.svg' was found.<br>
+<br>
+(./parallel_extend.tex<br>
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 2.<br>
+\c@algpx@indentEndPage-0=\count556<br>
+\c@algpx@indentEndPage-1=\count557<br>
+\c@algpx@indentEndPage-2=\count558<br>
+\c@algpx@indentEndPage-3=\count559<br>
+\c@algpx@indentEndPage-4=\count560<br>
+<br>
+Overfull \hbox (0.62395pt too wide) in paragraph at lines 19--20<br>
+[] [][][][][][][] <br>
+ []<br>
+<br>
+\c@algpx@indentEndPage-5=\count561<br>
+<br>
+Overfull \hbox (0.62395pt too wide) in paragraph at lines 22--23<br>
+[] [][][][][][][][] <br>
+ []<br>
+<br>
+<br>
+Overfull \hbox (0.62395pt too wide) in paragraph at lines 24--25<br>
+[] [][][][][][][] <br>
+ []<br>
+<br>
+\c@algpx@indentEndPage-6=\count562<br>
+\c@algpx@indentEndPage-7=\count563<br>
+<br>
+Overfull \hbox (0.62395pt too wide) in paragraph at lines 29--30<br>
+[] [][][][][][][][] <br>
+ []<br>
+<br>
+\c@algpx@indentEndCoordIndex-4=\count564<br>
+\c@algpx@indentEndPage-8=\count565<br>
+\c@algpx@indentEndPage-9=\count566<br>
+\c@algpx@indentEndCoordIndex-0=\count567<br>
+)<br>
+<br>
+(./sim_maze_results.tex<br>
+\mazetablebox=\box94<br>
+<br>
+Package caption <span class="tex-warning">Warning</span>: The option `hypcap=true' will be ignored for this<br>
+(caption)                particular \caption on input line 27.<br>
+See the caption package documentation for explanation.<br>
+<br>
+&lt;images/hero_ghosts.jpg, id=163, 2291.56125pt x 1281.78876pt&gt;<br>
+File: images/hero_ghosts.jpg Graphic file (type jpg)<br>
+&lt;use images/hero_ghosts.jpg&gt;<br>
+Package pdftex.def Info: images/hero_ghosts.jpg  used on input line 46.<br>
+(pdftex.def)             Requested size: 182.1207pt x 101.86064pt.<br>
+)<br>
+<br>
+[4]<br>
+<br>
+Package svg <span class="tex-warning">Warning</span>: You didn't enable `shell escape' (or `write18')<br>
+(svg)                so it wasn't possible to launch the Inkscape export<br>
+(svg)                for `images/plots/maze/total_time_ecdf.svg' on input line 503.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:503: Package svg Error: File `total_time_ecdf_svg-tex.pdf' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.503     \includesvg[width=\linewidth]{images/plots/maze/total_time_ecdf.svg}<br>
+                                                                              <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/total_time_ecdf_svg-tex.pdf'<br>
+although `images/plots/maze/total_time_ecdf.svg' was found.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:503: Package svg Error: File `total_time_ecdf_svg-tex.pdf_tex' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.503     \includesvg[width=\linewidth]{images/plots/maze/total_time_ecdf.svg}<br>
+                                                                              <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/total_time_ecdf_svg-tex.pdf_tex'<br>
+although `images/plots/maze/total_time_ecdf.svg' was found.<br>
+<br>
+<br>
+Package svg <span class="tex-warning">Warning</span>: You didn't enable `shell escape' (or `write18')<br>
+(svg)                so it wasn't possible to launch the Inkscape export<br>
+(svg)                for `images/plots/maze/config_distance_and_eef_distance.svg' on input line 511.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:511: Package svg Error: File `config_distance_and_eef_distance_svg-tex.pdf' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.511     \includesvg[width=\linewidth]{images/plots/maze/config_distance_and_eef_distance.svg}<br>
+                                                                                               <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/config_distance_and_eef_distance_svg-tex.pdf'<br>
+although `images/plots/maze/config_distance_and_eef_distance.svg' was found.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:511: Package svg Error: File `config_distance_and_eef_distance_svg-tex.pdf_tex' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.511     \includesvg[width=\linewidth]{images/plots/maze/config_distance_and_eef_distance.svg}<br>
+                                                                                               <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/config_distance_and_eef_distance_svg-tex.pdf_tex'<br>
+although `images/plots/maze/config_distance_and_eef_distance.svg' was found.<br>
+<br>
+<br>
+<br>
+&lt;images/realmazex.jpg, id=206, 1104.125pt x 620.3175pt&gt;<br>
+File: images/realmazex.jpg Graphic file (type jpg)<br>
+&lt;use images/realmazex.jpg&gt;<br>
+Package pdftex.def Info: images/realmazex.jpg  used on input line 532.<br>
+(pdftex.def)             Requested size: 233.43144pt x 131.14133pt.<br>
+(./tables/maze/real_results_table.tex)<br>
+Underfull \vbox (badness 10000) has occurred while \output is active []<br>
+<br>
+<br>
+<br>
+[5 &lt;./images/hero_ghosts.jpg&gt; &lt;./images/realmazex.jpg&gt;]<br>
+<br>
+Package svg <span class="tex-warning">Warning</span>: You didn't enable `shell escape' (or `write18')<br>
+(svg)                so it wasn't possible to launch the Inkscape export<br>
+(svg)                for `images/plots/bimanual/bim_total_time_ecdf.svg' on input line 610.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:610: Package svg Error: File `bim_total_time_ecdf_svg-tex.pdf' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.610     \includesvg[width=\linewidth]{images/plots/bimanual/bim_total_time_ecdf.svg}<br>
+                                                                                      <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/bim_total_time_ecdf_svg-tex.pdf'<br>
+although `images/plots/bimanual/bim_total_time_ecdf.svg' was found.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:610: Package svg Error: File `bim_total_time_ecdf_svg-tex.pdf_tex' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.610     \includesvg[width=\linewidth]{images/plots/bimanual/bim_total_time_ecdf.svg}<br>
+                                                                                      <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/bim_total_time_ecdf_svg-tex.pdf_tex'<br>
+although `images/plots/bimanual/bim_total_time_ecdf.svg' was found.<br>
+<br>
+<br>
+Package svg <span class="tex-warning">Warning</span>: You didn't enable `shell escape' (or `write18')<br>
+(svg)                so it wasn't possible to launch the Inkscape export<br>
+(svg)                for `images/plots/bimanual/bim_config_distance_and_eef_distance.svg' on input line 618.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:618: Package svg Error: File `bim_config_distance_and_eef_distance_svg-tex.pdf' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.618     \includesvg[width=\linewidth]{images/plots/bimanual/bim_config_distance_and_eef_distance.svg}<br>
+                                                                                                       <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/bim_config_distance_and_eef_distance_svg-tex.pdf'<br>
+although `images/plots/bimanual/bim_config_distance_and_eef_distance.svg' was found.<br>
+<br>
+<br>
+<span class="tex-warning">./root.tex:618: Package svg Error: File `bim_config_distance_and_eef_distance_svg-tex.pdf_tex' is missing.</span><br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help.<br>
+ ...ge  Package svg Error: File `\filename@base .\filename@ext ' is missing.<br>
+<br>
+See the svg package documentation for explanation.<br>
+Type  H &lt;return&gt;  for immediate help\@err@                                                                   <br>
+                                                                                                                                                                                                                                              <br>
+l.618     \includesvg[width=\linewidth]{images/plots/bimanual/bim_config_distance_and_eef_distance.svg}<br>
+                                                                                                       <br>
+Did you run the export with Inkscape? There's no file<br>
+`./svg-inkscape/bim_config_distance_and_eef_distance_svg-tex.pdf_tex'<br>
+although `images/plots/bimanual/bim_config_distance_and_eef_distance.svg' was found.<br>
+<br>
+(./tables/bimanual/results_table.tex)<br>
+<br>
+(./tables/ruby/ruby_results.tex<br>
+<br>
+[6]<br>
+Underfull \hbox (badness 2173) in paragraph at lines 145--145<br>
+[]\T1/ptm/m/n/8 TABLE IV: |RB-Y1 box pickup plan-ning re-sults: the orig-i-nal IFT<br>
+ []<br>
+<br>
+)<br>
+<br>
+<br>
+<br>
+[7]<br>
+<br>
+<br>
+** Conference Paper **<br>
+Before submitting the final camera ready copy, remember to:<br>
+<br>
+ 1. Manually equalize the lengths of two columns on the last page<br>
+ of your paper;<br>
+<br>
+ 2. Ensure that any PostScript and/or PDF output post-processing<br>
+ uses only Type 1 fonts and that every step in the generation<br>
+ process uses the US letter (8.5in X 11in) paper size.<br>
+<br>
+<br>
+<br>
+[8] (./root.aux)<br>
+ ***********<br>
+LaTeX2e &lt;2025-06-01&gt; patch level 1<br>
+L3 programming layer &lt;2025-07-20&gt;<br>
+ ***********<br>
+<br>
+LaTeX <span class="tex-warning">Warning</span>: There were undefined references.<br>
+<br>
+<br>
+LaTeX Warning: Label(s) may have changed. <span class="tex-fatal">Rerun</span> to get cross-references right.<br>
+<br>
+<span class="tex-ignore">Package rerunfilecheck Info: File `root.out' has not changed.</span><br>
+<span class="tex-fatal">(rerunfilecheck)             Checksum: 0A9728EC5F7A149A6B4C1377EC226E21;2750.</span><br>
+<br>
+Package biblatex Warning: Please <span class="tex-fatal">rerun</span> LaTeX.<br>
+<br>
+Package logreq Info: Writing requests to 'root.run.xml'.<br>
+\openout1 = `root.run.xml'.<br>
+<br>
+ ) <br>
+Here is how much of TeX's memory you used:<br>
+ 43423 strings out of 467801<br>
+ 880387 string characters out of 5431917<br>
+ 1748477 words of memory out of 5000000<br>
+ 71337 multiletter control sequences out of 15000+600000<br>
+ 755258 words of font info for 162 fonts, out of 8000000 for 9000<br>
+ 1142 hyphenation exceptions out of 8191<br>
+ 100i,14n,104p,1514b,2301s stack positions out of 10000i,1000n,20000p,200000b,200000s<br>
+&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmb8a.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmbi8a.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmr8a.pfb&gt;&lt;/usr/local/texlive/2025/texmf-dist/fonts/type1/urw/times/utmri8a.pfb&gt;<br>
+<span class="tex-success">Output written on root.pdf (8 pages, 1629040 bytes).</span><br>
+<span class="tex-success">PDF statistics</span>:<br>
+ 371 PDF objects out of 1000 (max. 8388607)<br>
+ 310 compressed objects within 4 object streams<br>
+ 97 named destinations out of 1000 (max. 500000)<br>
+ 129 words of extra memory for PDF output out of 10000 (max. 10000000)<br>
+<br>
+<br>
+--</div><br>
+</div>
+<hr>
+
+    </div>
+
+
+    <footer class="ds-site-footer">
+      <div class="ds-site-footer-grid">
+        <div class="ds-site-footer-main">
+          <div class="ds-site-footer-ack">
+            We gratefully acknowledge support from our <strong>major funders</strong>,
+            <a href="https://info.arxiv.org/about/ourmembers.html"><strong>member institutions</strong></a><span class="ack-member-inline">, <strong>Purdue University Libraries</strong></span>,
+            and all contributors.
+          </div>
+          <nav class="ds-site-footer-links" aria-label="Site navigation">
+            <a href="https://info.arxiv.org/about">About</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://info.arxiv.org/help">Help</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://info.arxiv.org/help/contact.html">Contact</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://info.arxiv.org/help/subscribe">Subscribe</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://info.arxiv.org/help/license/index.html">Copyright</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://info.arxiv.org/help/policies/privacy_policy.html">Privacy</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://info.arxiv.org/help/web_accessibility.html">Accessibility</a>
+            <span class="ds-site-footer-sep" aria-hidden="true">·</span>
+            <a href="https://status.arxiv.org/" target="_blank" rel="noopener noreferrer">Operational Status<span class="is-sr-only"> (opens in new tab)</span></a>
+          </nav>
+        </div>
+        <div class="ds-site-footer-funders" aria-label="Major funders">
+          <div class="ds-site-footer-funders-label">Major funding support from</div>
+          <div class="ds-site-footer-funders-logos">
+            <a class="ds-funder-link" href="https://www.simonsfoundation.org/" target="_blank" rel="noopener noreferrer">
+              <img class="ds-funder-logo" src="./File Processing Result_files/simons-foundation.png" alt="Simons Foundation"></a>
+            <a class="ds-funder-link" href="https://www.sfi.org.bm/" target="_blank" rel="noopener noreferrer">
+              <img class="ds-funder-logo" src="./File Processing Result_files/simons-foundation-international.png" alt="Simons Foundation International"></a>
+            <a class="ds-funder-link" href="https://www.schmidtsciences.org/" target="_blank" rel="noopener noreferrer">
+              <img class="ds-funder-logo" src="./File Processing Result_files/schmidt-sciences.png" alt="Schmidt Sciences"></a>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+  <script src="./File Processing Result_files/arxiv-header.js"></script>
+ 
+
+</body></html>

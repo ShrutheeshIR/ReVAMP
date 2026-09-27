@@ -1,0 +1,11 @@
+$pdflatex = 'pdflatex -interaction=nonstopmode %O %S';
+
+# Also configure for lualatex if needed
+$lualatex = 'lualatex -interaction=nonstopmode %O %S';
+
+# Set PDF mode (1 = pdflatex, 4 = lualatex, 5 = xelatex)
+$pdf_mode = 1;
+
+# Use biber for bibliography (required for biblatex with backend=biber)
+$biber = 'biber --output-safechars %O %S';
+$bibtex_use = 2;

@@ -109,6 +109,7 @@ def build_parser():
     passthrough.add_argument("--engine", default="CYCLES")
     passthrough.add_argument("--lid-alpha", type=float, default=None)
     passthrough.add_argument("--z-fight-nudge", type=float, default=None)
+    passthrough.add_argument("--maze-material", choices=("flat", "wood"), default=None)
     passthrough.add_argument("--base-color", default=None)
     passthrough.add_argument("--wall-color", default=None)
     passthrough.add_argument("--floor-color", default=None)
@@ -134,7 +135,7 @@ def build_parser():
 PASSTHROUGH_FLAGS = (
     "camera_azimuth", "camera_elevation", "camera_distance", "camera_target",
     "camera_json", "lens", "frame_margin", "frame_subject", "device", "engine",
-    "lid_alpha", "z_fight_nudge",
+    "lid_alpha", "z_fight_nudge", "maze_material",
     "base_color", "wall_color", "floor_color", "lid_color", "robot_color",
     "trace_radius", "trace_lift", "trace_color", "trace_emission",
     "world_strength", "ambient", "light_strength", "key_elevation",

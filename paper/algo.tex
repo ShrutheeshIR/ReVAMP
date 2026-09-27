@@ -3,32 +3,39 @@
 \caption{\contrib{ParameterizedExtend}}
 \label{alg:paramextend}
 \begin{algorithmic}[1]
-\Require $T, q_{s}, q_{\text{target}}, \Phi, \mathcal{E}, r, \rho, n =$ SIMD width (e.g., 8 for Intel AVX)
+\Require $T, p_s, p_{\text{target}}, \Phi, \mathcal{E}, r, \rho$
 \Procedure{ParameterizedExtend}{}
-\State $\text{dist} \gets \text{PSpace.distance}(q_s, q_{\text{target}})$
+\State $\text{dist} \gets \Call{Distance}{p_s, p_{\text{target}}}$
 \State $\text{reach} \gets \text{dist} < r$
-\State $q_{\text{next}} \gets \text{reach} \;?\; q_{\text{target}} \;:\; \text{PSpace.interpolate}(q_s, q_{\text{target}}, r / \text{dist})$ \Comment{\contrib{Steer directly in task space $\mathcal{Q}$, not on a projected manifold}} \label{algline:pe:steer}
-\If{$\neg \Call{Accept}{q_{\text{next}}}$}
+\If{reach}
+    \State $p_{\text{next}} \gets p_{\text{target}}$
+\Else
+    \State \contrib{$p_{\text{next}} \gets \Call{Interpolate}{p_s, p_{\text{target}}, r / \text{dist}}$} \Comment{\contrib{steer in $\mathbb{P}$}} \label{algline:pe:steer}
+\EndIf
+\If{$\neg \Call{Accept}{p_{\text{next}}}$}
     \State \Return \textsc{Rejected}
 \EndIf
-\For{$i = 1$ \textbf{to} $\lceil \text{dist} / (n \rho) \rceil$} \Comment{Chord split into $n$-wide SIMD blocks at resolution $\rho$} \label{algline:pe:loop}
-    \State $q_{\text{task}}^{(1:n)} \gets \text{PSpace.interpolate\_block}(q_s, q_{\text{next}}, i)$ \Comment{$n$ task-space samples, vectorized}
-    \If{$\neg \text{EefCollisionFree}(q_{\text{task}}^{(1:n)}, \mathcal{E})$} \label{algline:pe:eefprefilter}
-        \State \Return \textsc{Trapped} \Comment{Cheap IK-free hand/attachment prefilter}
+\For{$i = 1$ \textbf{to} $\lceil \text{dist} / (n \rho) \rceil$} \Comment{$n$-wide SIMD blocks at resolution $\rho$} \label{algline:pe:loop}
+    \State $p^{(1:n)} \gets \Call{InterpolateBlock}{p_s, p_{\text{next}}, i}$ \label{algline:pe:interpolateblock}
+    \If{\contrib{$\neg \Call{EefCollisionFree}{p^{(1:n)}, \mathcal{E}}$}} \label{algline:pe:eefprefilter}
+        \State \contrib{\Return \textsc{Trapped}} \Comment{\contrib{IK-free collision prefilter}}
     \EndIf
-    \State $(\text{valid}, q_{\text{amb}}^{(1:n)}) \gets \Phi\big(q_{\text{task}}^{(1:n)}\big)$ \Comment{\contrib{Batched IK resolution}} \label{algline:pe:ik}
-    \If{$\neg \text{valid} \lor \neg \text{FKCC}\big(\mathcal{E}, q_{\text{amb}}^{(1:n)}\big)$}
+    \State \contrib{$(\text{valid}, q^{(1:n)}) \gets \Phi\big(p^{(1:n)}\big)$} \Comment{\contrib{batched IK}} \label{algline:pe:ik}
+    \If{$\neg \text{valid} \lor \neg \Call{CC}{\mathcal{E}, q^{(1:n)}}$} \label{algline:pe:fkcc}
         \State \Return \textsc{Trapped}
     \EndIf
-    \If{$\exists$ path-adjacent ambient lanes $(j, j{+}1)$ (within the block, or against the previous block's last lane) with $\big\| q_{\text{amb}}^{(j)} - q_{\text{amb}}^{(j+1)} \big\|_{\infty} \geq \delta_{\max}$} \label{algline:pe:jointdelta}
-        \State \Return \textsc{Trapped} \Comment{\contrib{Joint-continuity check stands in for manifold-projection continuity}}
+    \If{\contrib{$\neg \Call{JointContinuous}{q^{(1:n)}, \delta_{\max}}$}} \label{algline:pe:jointdelta}
+        \State \Return \textsc{Trapped} \Comment{\contrib{interlane $\ell_\infty$ jump check}}
     \EndIf
 \EndFor
-\State $T.\text{addVertex}(q_{\text{next}})$
-\State $T.\text{addEdge}(q_s, q_{\text{next}})$
-\State \Return \text{reach} $\;?\;$ \textsc{Reached} $\;:\;$ \textsc{Advanced}
+\State $\Call{AddVertex}{T, p_{\text{next}}}$
+\State $\Call{AddEdge}{T, p_s, p_{\text{next}}}$
+\If{reach}
+    \State \Return \textsc{Reached}
+\Else
+    \State \Return \textsc{Advanced}
+\EndIf
 \EndProcedure
 \end{algorithmic}
 \end{footnotesize}
 \end{algorithm}
-

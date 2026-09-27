@@ -61,7 +61,7 @@ ROBOT_COLOR = (0.82, 0.83, 0.85, 1.0)
 
 # The marker tip trace. #d7263d is the accent figures/robot_arm_fig.py already
 # uses for its targets, so the 3D and 2D figures agree.
-TRACE_COLOR = (0.843, 0.149, 0.239, 1.0)
+TRACE_COLOR = (0.157, 0.678, 0.290, 1.0)
 
 
 # ── import and classification ────────────────────────────────────────────────
@@ -183,6 +183,85 @@ def _flat_material(name, rgba):
     return mat
 
 
+def _wood_material(name, tint_rgba, roughness=0.5, grain_scale=6.0, distortion=1.0):
+    """Procedural wood grain, tinted toward `tint_rgba` -- so each role
+    (base/border/wall/floor/lid) still reads as a distinct brightness, now as a
+    wood tone instead of flat grey, rather than losing the role differentiation
+    restyle_maze exists for.
+
+    Went through two periodic-pattern approaches first (a plain Wave/BANDS
+    texture, then one with its input coordinates warped by Noise) before
+    landing here -- both still read as "stripes" no matter how low the colour
+    contrast was pushed, because a Wave texture repeats at a fixed period and
+    human vision is very sensitive to periodicity itself, separately from
+    contrast. This uses Noise instead, which has no period at all, stretched
+    hard along the grain direction (via Mapping's non-uniform Scale) so its
+    blobs elongate into long, irregular streaks rather than reading as round
+    mottling -- smooth and wood-grain-like without ever having a repeating
+    unit to be perceived as a stripe. Fully procedural (no image texture file
+    to ship/track), matching this pipeline's everything-from-a-script
+    philosophy -- see FIGURES_HOWTO.md's opening line. One material is shared
+    by every plank of a role; each plank's Object Info "Random" output offsets
+    where it samples the noise field, so the shared material still shows
+    different grain per plank instead of one visibly repeating pattern stamped
+    across the board.
+    """
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = nt.nodes.get("Principled BSDF")
+
+    obj_info = nt.nodes.new("ShaderNodeObjectInfo")
+    combine = nt.nodes.new("ShaderNodeCombineXYZ")
+    nt.links.new(obj_info.outputs["Random"], combine.inputs["X"])
+    nt.links.new(obj_info.outputs["Random"], combine.inputs["Y"])
+    nt.links.new(obj_info.outputs["Random"], combine.inputs["Z"])
+
+    tex_coord = nt.nodes.new("ShaderNodeTexCoord")
+    offset = nt.nodes.new("ShaderNodeVectorMath")
+    offset.operation = 'ADD'
+    nt.links.new(tex_coord.outputs["Object"], offset.inputs[0])
+    nt.links.new(combine.outputs["Vector"], offset.inputs[1])
+
+    # Stretch hard along X (grain direction) and compress across Y/Z, so the
+    # noise's blobs elongate into long streaks running the plank's length
+    # instead of round mottling. grain_scale sets the overall size; the 0.15x
+    # on X vs. the full scale on Y/Z is the elongation ratio.
+    stretch = nt.nodes.new("ShaderNodeMapping")
+    stretch.inputs["Scale"].default_value = (grain_scale * 0.15, grain_scale, grain_scale)
+    nt.links.new(offset.outputs["Vector"], stretch.inputs["Vector"])
+
+    wood = nt.nodes.new("ShaderNodeTexNoise")
+    wood.inputs["Detail"].default_value = 2.0
+    wood.inputs["Roughness"].default_value = 0.5
+    wood.inputs["Distortion"].default_value = distortion
+    nt.links.new(stretch.outputs["Vector"], wood.inputs["Vector"])
+
+    # Map the noise's Fac through a two-stop ramp around tint_rgba -- kept
+    # narrow (dark/light within ~10% of the base tone) for a smooth, low-
+    # contrast board. EASE interpolation rounds off the transition instead of
+    # ramping straight through it.
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.interpolation = 'EASE'
+    dark = tuple(c * 0.90 for c in tint_rgba[:3]) + (1.0,)
+    light = tuple(min(1.0, c * 1.08) for c in tint_rgba[:3]) + (1.0,)
+    ramp.color_ramp.elements[0].color = dark
+    ramp.color_ramp.elements[1].color = light
+    nt.links.new(wood.outputs["Factor"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
+
+    # Subtle physical relief off the same noise, so the grain isn't just a
+    # flat decal under the key light.
+    bump = nt.nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.02
+    nt.links.new(wood.outputs["Factor"], bump.inputs["Height"])
+    nt.links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+
+    bsdf.inputs["Metallic"].default_value = 0.0
+    bsdf.inputs["Roughness"].default_value = roughness
+    return mat
+
+
 def _parse_color(value, fallback):
     """`#rrggbb`, `r,g,b`, or `r,g,b,a` -> an RGBA tuple."""
     if not value:
@@ -225,8 +304,31 @@ def restyle_maze(parts, args):
         "lid": _parse_color(getattr(args, "lid_color", None), ROLE_COLORS["lid"]),
     }
 
-    materials = {role: _flat_material(f"maze_{role}", rgba)
-                 for role, rgba in overrides.items()}
+    if getattr(args, "maze_material", "flat") == "wood":
+        # ROLE_COLORS' greys were never meant to survive as wood tones, so an
+        # explicit --*-color override still wins (it's a deliberate ask, same as
+        # for --maze-material flat), but the un-overridden defaults are swapped
+        # for wood-plausible browns of the same relative brightness (walls
+        # lightest/most lit, floor darkest/most recessed) that restyle_maze's
+        # role differentiation depends on.
+        wood_defaults = {
+            "base":   (0.36, 0.22, 0.12, 1.0),
+            "border": (0.42, 0.27, 0.15, 1.0),
+            "wall":   (0.62, 0.42, 0.24, 1.0),
+            "floor":  (0.24, 0.15, 0.08, 1.0),
+            "lid":    (0.52, 0.34, 0.19, 1.0),
+        }
+        role_color_args = {"base": "base_color", "border": "wall_color", "wall": "wall_color",
+                            "floor": "floor_color", "lid": "lid_color"}
+        overrides = {
+            role: (rgba if getattr(args, role_color_args[role], None) else wood_defaults[role])
+            for role, rgba in overrides.items()
+        }
+        materials = {role: _wood_material(f"maze_{role}", rgba)
+                     for role, rgba in overrides.items()}
+    else:
+        materials = {role: _flat_material(f"maze_{role}", rgba)
+                     for role, rgba in overrides.items()}
     for role, objs in parts["by_role"].items():
         mat = materials[role]
         for obj in objs:
@@ -1254,6 +1356,8 @@ def add_common_arguments(ap):
                     help="metres to lift the lids, breaking the exactly-coplanar top "
                          "faces that otherwise render as black patches (default: 1e-4)")
 
+    ap.add_argument("--maze-material", choices=("flat", "wood"), default="flat",
+                    help="flat role colour (default) or procedural wood grain per role")
     ap.add_argument("--base-color", help="#rrggbb for the base plate")
     ap.add_argument("--wall-color", help="#rrggbb for the maze walls")
     ap.add_argument("--floor-color", help="#rrggbb for the in-channel floor plates")
@@ -1261,13 +1365,13 @@ def add_common_arguments(ap):
     ap.add_argument("--robot-color", help="#rrggbb for the FR3's shells")
 
     ap.add_argument("--trace-json", help="tip_path.json; omit to draw no trace")
-    ap.add_argument("--trace-radius", type=float, default=0.0025,
-                    help="trace tube radius in metres (default: 0.0025)")
+    ap.add_argument("--trace-radius", type=float, default=0.0032,
+                    help="trace tube radius in metres (default: 0.0032)")
     ap.add_argument("--trace-lift", type=float, default=0.0015,
                     help="metres to lift the trace off the channel floor, which it is "
                          "otherwise coincident with (default: 0.0015)")
-    ap.add_argument("--trace-color", default="#d7263d",
-                    help="trace colour (default: #d7263d, the figures/ accent)")
+    ap.add_argument("--trace-color", default="#28ad4a",
+                    help="trace colour (default: #28ad4a, the figures/ accent)")
     ap.add_argument("--trace-emission", type=float, default=0.35,
                     help="emission strength so the trace reads inside a channel")
 

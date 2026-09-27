@@ -1,0 +1,40 @@
+\begin{algorithm}[!htbp]
+\caption{\contrib{ParameterizedExtend}}
+\label{alg:paramextend}
+\footnotesize
+\begin{algorithmic}[1]
+\Require $\mathcal{T}, p_s, p_{\text{target}}, \Phi, \mathcal{E}, r, \rho$
+\Procedure{ParameterizedExtend}{}
+\State $\text{dist} \gets \Call{Distance}{p_s, p_{\text{target}}}$
+\State $\text{reach} \gets \text{dist} < r$
+\If{reach}
+    \State $p_{\text{next}} \gets p_{\text{target}}$
+\Else
+    \State \contrib{$p_{\text{next}} \gets \Call{Interpolate}{p_s, p_{\text{target}}, r / \text{dist}}$} \Comment{\contrib{steer in $\mathbb{P}$}} \alglabel{algline:pe:steer}
+\EndIf
+\If{$\neg \Call{Accept}{p_{\text{next}}}$}
+    \State \Return \textsc{Rejected}
+\EndIf
+\For{$i = 1$ \textbf{to} $\lceil \text{dist} / (n \rho) \rceil$} \Comment{$n$-wide SIMD blocks} \alglabel{algline:pe:loop}
+    \State $p^{(1:n)} \gets \Call{InterpolateBlock}{p_s, p_{\text{next}}, i}$ \alglabel{algline:pe:interpolateblock}
+    \If{\contrib{$\neg \Call{EefCollisionFree}{p^{(1:n)}, \mathcal{E}}$}} \alglabel{algline:pe:eefprefilter}
+        \State \contrib{\Return \textsc{Trapped}} \Comment{\contrib{IK-free collision prefilter}}
+    \EndIf
+    \State \contrib{$(\text{valid}, q^{(1:n)}) \gets \Phi\big(p^{(1:n)}\big)$} \Comment{\contrib{batched IK}} \alglabel{algline:pe:ik}
+    \If{$\neg \text{valid} \lor \neg \Call{CC}{\mathcal{E}, q^{(1:n)}}$} \alglabel{algline:pe:fkcc}
+        \State \Return \textsc{Trapped}
+    \EndIf
+    \If{\contrib{$\neg \Call{JointContinuous}{q^{(1:n)}, \delta_{\max}}$}} \alglabel{algline:pe:jointdelta}
+        \State \Return \textsc{Trapped} \Comment{\contrib{interlane $\ell_\infty$ jump check}}
+    \EndIf
+\EndFor
+\State $\Call{AddVertex}{\mathcal{T}, p_{\text{next}}}$
+\State $\Call{AddEdge}{\mathcal{T}, p_s, p_{\text{next}}}$
+\If{reach}
+    \State \Return \textsc{Reached}
+\Else
+    \State \Return \textsc{Advanced}
+\EndIf
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}

@@ -1,5 +1,9 @@
 rby1-constrained-planning/
 
+# Raw video capture/render footage and its venv -- multi-GB files (several
+# over GitHub's 100MB hard limit), not meant to live in git history.
+revamp-video/
+
 # Assistant-facing and in-progress writing artifacts -- this repo may be pushed
 # upstream, so neither belongs in its history.
 CLAUDE.md
@@ -12,3 +16,12 @@ out/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# CMake build tree and run artifacts for src/experiments
+src/experiments/build/
+src/experiments/results/
+src/experiments/trajectories/
+
+# Disposable PNG previews of the plots (SVG/PDF are canonical), matching how
+# vamp's own .gitignore treated these before the move.
+src/experiments/plots/**/*.png
