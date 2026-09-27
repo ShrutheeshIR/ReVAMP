@@ -1,9 +1,5 @@
 rby1-constrained-planning/
 
-# Raw video capture/render footage and its venv -- multi-GB files (several
-# over GitHub's 100MB hard limit), not meant to live in git history.
-revamp-video/
-
 # Assistant-facing and in-progress writing artifacts -- this repo may be pushed
 # upstream, so neither belongs in its history.
 CLAUDE.md
